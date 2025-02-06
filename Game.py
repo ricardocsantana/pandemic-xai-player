@@ -6,7 +6,6 @@ from Render import Renderer
 from Constants import POSITIONS, CITIES, COLORS
 
 SCALING_FACTOR = 75
-actions=list(CITIES.keys())+["TREAT YELLOW CUBE", "TREAT BLUE CUBE", "TREAT RED CUBE", "SHARE KNOWLEDGE", "FIND CURE"]
 #render_mode = "human"
 
 class Board:
@@ -86,6 +85,9 @@ def main():
     player_2 = Player(cities["GENÈVE"], role="QUARANTINE", color="green", shape="circle",
                       init_hand=board.player_2_hand, partner=player_1)
     player_1.partner = player_2
+
+    action_space = player_1.all_actions
+
     # Prepare the epidemic decks as before
     board.draw_epidemic_deck(cities, 2, 3)
     board.draw_epidemic_deck(cities, 2, 2)
@@ -107,13 +109,17 @@ def main():
     
     # Connect the key press event handler to the figure
     cid = fig.canvas.mpl_connect('key_press_event', on_key)
-    
+    player_1.active = True # Player 1 starts the game
     # Animation loop: run for a number of frames (adjust as needed)
-    for _ in range(100):
+    for n in range(100):
         # Check if the "q" key was pressed to quit the loop
         if control["quit"]:
             print("Quitting the animation loop.")
             break
+
+        if n % 4 == 0 and n != 0:
+            player_1.active = not player_1.active
+            player_2.active = not player_2.active
 
         # Clear the current figure and redraw the map
         plt.clf()
@@ -121,15 +127,17 @@ def main():
                  board.outbreak_count, board.player_deck, board.infection_discard_pile, board.yellow_cubes, 
                  board.blue_cubes, board.red_cubes)
         
-        possible_actions_player_1 = player_1.action_mask(board, cities)
-        action_player_1 = actions[random.choice([index for index, value in enumerate(possible_actions_player_1) if value == 1])]
-        player_1.take_action(action_player_1, cities)
-        print("1: ", action_player_1)
+        if player_1.active:
+            possible_actions_player_1 = player_1.action_mask(board, cities)
+            action_player_1 = action_space[random.choice([index for index, value in enumerate(possible_actions_player_1) if value == 1])]
+            player_1.take_action(action_player_1, board, cities)
+            print("1: ", action_player_1)
 
-        possible_actions_player_2 = player_2.action_mask(board, cities)
-        action_player_2 = actions[random.choice([index for index, value in enumerate(possible_actions_player_2) if value == 1])]
-        player_2.take_action(action_player_2, cities)
-        print("2: ", action_player_2)
+        if player_2.active:
+            possible_actions_player_2 = player_2.action_mask(board, cities)
+            action_player_2 = action_space[random.choice([index for index, value in enumerate(possible_actions_player_2) if value == 1])]
+            player_2.take_action(action_player_2, board, cities)
+            print("2: ", action_player_2)
 
         # Wait for a button press (key or mouse click) before continuing.
         # If the user presses 'q', the on_key callback will set control["quit"] to True.
