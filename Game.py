@@ -266,7 +266,7 @@ def main():
     board.draw_epidemic_deck(cities, n_draws=2, n_cubes=1)
 
     # Initialize the renderer for drawing the game map.
-    renderer = Renderer()
+    renderer = Renderer(cities)
 
     # Enable interactive mode in matplotlib and create a figure.
     plt.ion()

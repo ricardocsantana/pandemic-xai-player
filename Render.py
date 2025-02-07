@@ -1,4 +1,4 @@
-from Constants import CITIES, COLORS
+from Constants import COLORS
 import networkx as nx
 import matplotlib.pyplot as plt
 
@@ -8,13 +8,13 @@ class Renderer:
     Utilizes networkx to generate the city network and matplotlib for drawing.
     """
     
-    def __init__(self):
+    def __init__(self, cities):
         """
         Initialize the Renderer by creating the network graph of cities.
         """
-        self.graph = self.create_graph()
+        self.graph = self.create_graph(cities)
 
-    def create_graph(self):
+    def create_graph(self, cities):
         """
         Create a network graph of the cities based on their connections.
 
@@ -23,9 +23,9 @@ class Renderer:
         """
         graph = nx.Graph()
         # Iterate through each city and its neighbors to add edges.
-        for city, neighbors in CITIES.items():
-            for neighbor in neighbors:
-                graph.add_edge(city, neighbor)
+        for city in cities.values():
+            for neighbor in city.connections:
+                graph.add_edge(city.name, neighbor)
         return graph
 
     def draw_city_labels(self, cities):
