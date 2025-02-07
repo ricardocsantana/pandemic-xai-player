@@ -17,7 +17,9 @@ class Player:
             "TREAT BLUE", 
             "TREAT RED", 
             "SHARE KNOWLEDGE", 
-            "FIND CURE"
+            "FIND CURE YELLOW",
+            "FIND CURE BLUE",
+            "FIND CURE RED"
         ]
 
         self.partner = partner
@@ -45,13 +47,13 @@ class Player:
             allowed_actions.append("SHARE KNOWLEDGE")
 
         if self.loc.name == "GENÈVE" and [cities[city].color for city in self.hand].count("YELLOW")>=4 and board.yellow_cure is False:
-            allowed_actions.append("FIND CURE")
+            allowed_actions.append("FIND CURE YELLOW")
 
         if self.loc.name == "GENÈVE" and [cities[city].color for city in self.hand].count("BLUE")>=4 and board.blue_cure is False:
-            allowed_actions.append("FIND CURE")
+            allowed_actions.append("FIND CURE BLUE")
 
         if self.loc.name == "GENÈVE" and [cities[city].color for city in self.hand].count("RED")>=4 and board.red_cure is False:
-            allowed_actions.append("FIND CURE")
+            allowed_actions.append("FIND CURE RED")
 
         action_mask = [1 if action in allowed_actions else 0 for action in self.all_actions]
 
@@ -69,14 +71,37 @@ class Player:
             self.loc = cities[action[-1]]
         if action[0] == "TREAT":
             if action[-1] == "YELLOW":
-                self.loc.infection_yellow -= 1
-                board.yellow_cubes += 1
+                if not board.yellow_cure:
+                    self.loc.infection_yellow -= 1
+                    board.yellow_cubes += 1
+                else:
+                    board.yellow_cubes += self.loc.infection_yellow
+                    self.loc.infection_yellow = 0
             if action[-1] == "BLUE":
-                self.loc.infection_blue -= 1
-                board.blue_cubes += 1
+                if not board.blue_cure:
+                    self.loc.infection_blue -= 1
+                    board.blue_cubes += 1
+                else:
+                    board.blue_cubes += self.loc.infection_blue
+                    self.loc.infection_blue = 0
             if action[-1] == "RED":
-                self.loc.infection_red -= 1
-                board.red_cubes += 1
+                if not board.red_cure:
+                    self.loc.infection_red -= 1
+                    board.red_cubes += 1
+                else:
+                    board.red_cubes += self.loc.infection_red
+                    self.loc.infection_red = 0
         if action[0] == "SHARE":
-            self.hand.remove(self.loc.name)
-            self.partner.hand.append(self.loc.name)
+            if self.loc.name in self.hand:
+                self.hand.remove(self.loc.name)
+                self.partner.hand.append(self.loc.name)
+            else:
+                self.partner.hand.remove(self.loc.name)
+                self.hand.append(self.loc.name)
+        if action[0] == "FIND":
+            if action[-1] == "YELLOW":
+                board.yellow_cure = True
+            if action[-1] == "BLUE":
+                board.blue_cure = True
+            if action[-1] == "RED":
+                board.red_cure = True

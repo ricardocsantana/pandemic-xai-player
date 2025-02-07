@@ -6,7 +6,6 @@ from Render import Renderer
 from Constants import POSITIONS, CITIES, COLORS
 
 SCALING_FACTOR = 75
-#render_mode = "human"
 
 class Board:
 
@@ -116,6 +115,7 @@ def main():
         if control["quit"]:
             print("Quitting the animation loop.")
             break
+
 
         if n % 4 == 0 and n != 0:
             player_1.active = not player_1.active
