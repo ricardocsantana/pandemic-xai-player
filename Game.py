@@ -217,7 +217,25 @@ class Board:
         player_deck = sum(piles, [])  # Flatten the list of piles.
 
         return init_hand_1, init_hand_2, player_deck
+    
+    def check_win(self):
+        """
+        Check if the players have won the game by curing all diseases.
 
+        Returns:
+            bool: True if all diseases are cured, False otherwise.
+        """
+        return self.yellow_cure and self.blue_cure and self.red_cure
+
+    def check_loss(self):
+        """
+        Check if the players have lost the game due to outbreaks, running out of cubes, or running out of player cards.
+
+        Returns:
+            bool: True if the players have lost, False otherwise.
+        """
+        return self.outbreak_count >= 4 or self.yellow_cubes <= 0 \
+    or self.blue_cubes <= 0 or self.red_cubes <= 0 or len(self.player_deck) <= 1
 
 def main():
     """
@@ -291,6 +309,14 @@ def main():
         # Quit the loop if the 'q' key has been pressed.
         if control["quit"]:
             print("Quitting the animation loop.")
+            break
+        
+        # Check for game over conditions.
+        if board.check_win():
+            print("Players have won the game!")
+            break
+        if board.check_loss():
+            print("Players have lost the game!")
             break
 
         # Every 4 iterations (except the first), draw cards for the active player and toggle turns.
