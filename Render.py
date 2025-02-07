@@ -26,7 +26,7 @@ class Renderer:
             )
 
     def draw_infection_info(self, infection_rate, epidemic_count, outbreak_count, 
-                            player_deck, yellow_cubes, blue_cubes, red_cubes):
+                            player_deck, yellow_cubes, blue_cubes, red_cubes, yellow_cure, blue_cure, red_cure):
         """Draw infection rate and outbreak info."""
 
         plt.text(-1900, 4700, "Infection\nrate {}".format(infection_rate),
@@ -37,13 +37,13 @@ class Renderer:
         plt.text(-1900, 4300, "{}/3 epidemics\n\n{}/4 outbreaks\n\n{} player cards left".format(epidemic_count,
                                     outbreak_count, len(player_deck)), ha='center', va='center', fontsize=12, weight='bold')
 
-        plt.text(x=-1000, y=4700, s="{} yellow cubes left\nNOT TREATED".format(yellow_cubes), ha='center', va='center', fontsize=12,
+        plt.text(x=-1000, y=4700, s="{} yellow cubes left\nTreated={}".format(yellow_cubes, yellow_cure), ha='center', va='center', fontsize=12,
                  bbox=dict(facecolor='#F1C40F', edgecolor="yellow", alpha=0.3, boxstyle="square, pad=.1"))
 
-        plt.text(x=-250, y=4700, s="{} blue cubes left\nNOT TREATED".format(blue_cubes), ha='center', va='center', fontsize=12,
+        plt.text(x=-250, y=4700, s="{} blue cubes left\nTreated={}".format(blue_cubes, blue_cure), ha='center', va='center', fontsize=12,
                  bbox=dict(facecolor='#3498DB', edgecolor="blue", alpha=0.3, boxstyle="square, pad=.1"))
 
-        plt.text(x=450, y=4700, s="{} red cubes left\nNOT TREATED".format(red_cubes), ha='center', va='center', fontsize=12,
+        plt.text(x=450, y=4700, s="{} red cubes left\nTreated={}".format(red_cubes, red_cure), ha='center', va='center', fontsize=12,
                  bbox=dict(facecolor='#E74C3C', edgecolor="red", alpha=0.3, boxstyle="square, pad=.1"))
 
     def draw_player_info(self, player_1, player_2):
@@ -63,16 +63,16 @@ class Renderer:
             if city.infection_yellow != 0:
                 plt.text(x=city.pos[0] + 10, y=city.pos[1] + 75, s=city.infection_yellow, ha='left', va='bottom',
                          fontsize=12, weight="bold",
-                         bbox=dict(facecolor="#F1C40F", edgecolor="yellow", alpha=0.3,
+                         bbox=dict(facecolor="#F1C40F", edgecolor="orange", alpha=0.3,
                                    boxstyle="square, pad=.1"))
             if city.infection_blue != 0:
-                plt.text(x=city.pos[0] + 20, y=city.pos[1] + 75, s=city.infection_blue, ha='left',
+                plt.text(x=city.pos[0] + 90, y=city.pos[1] + 75, s=city.infection_blue, ha='left',
                          va='bottom',
                          fontsize=12, weight="bold",
                          bbox=dict(facecolor="#3498DB", edgecolor="blue", alpha=0.3,
                                    boxstyle="square, pad=.1"))
             if city.infection_red != 0:
-                plt.text(x=city.pos[0] + 40, y=city.pos[1] + 75, s=city.infection_red, ha='left',
+                plt.text(x=city.pos[0] + 170, y=city.pos[1] + 75, s=city.infection_red, ha='left',
                          va='bottom',
                          fontsize=12, weight="bold",
                          bbox=dict(facecolor="#E74C3C", edgecolor="red", alpha=0.3,
@@ -94,7 +94,7 @@ class Renderer:
 
     def draw_map(self, cities, player_1, player_2, infection_rate, epidemic_count, 
                  outbreak_count, player_deck, infection_discard_pile, yellow_cubes, 
-                 blue_cubes, red_cubes):
+                 blue_cubes, red_cubes, yellow_cure, blue_cure, red_cure):
         """Draw the map and the city network."""
         
         # Draw the network of cities
@@ -103,7 +103,8 @@ class Renderer:
 
         self.draw_city_labels(cities)
         self.draw_infection_info(infection_rate, epidemic_count, outbreak_count, 
-                                 player_deck, yellow_cubes, blue_cubes, red_cubes)
+                                 player_deck, yellow_cubes, blue_cubes, red_cubes,
+                                 yellow_cure, blue_cure, red_cure)
         self.draw_player_info(player_1, player_2)
         self.draw_disease_cubes_info(cities)
         self.draw_decks_info(infection_discard_pile, player_1, player_2)

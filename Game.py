@@ -12,18 +12,19 @@ class Board:
     def __init__(self):
         self.epidemic_count = 0
         self.outbreak_count = 0
-        self.infection_rate = 2
+        self.infection_rate = 0
+        self.infection_rate_track = [2, 2, 3, 4]
         self.yellow_cubes = 16
         self.blue_cubes = 16
         self.red_cubes = 16
-        self.yellow_cure = False # TODO: ADD TO RENDER
+        self.yellow_cure = False
         self.blue_cure = False
         self.red_cure = False
         self.pos = self.calculate_positions()
         self.player_1_hand, self.player_2_hand, self.player_deck=self.create_player_deck()
         self.infection_deck = self.create_infection_deck()
         self.infection_discard_pile=[]
-        self.player_discard_pile=[]
+        self.outbreak_track = []
 
     def calculate_positions(self):
         """Map the positions of cities to scaled geographic coordinates."""
@@ -31,24 +32,68 @@ class Board:
             city: (SCALING_FACTOR * lon, SCALING_FACTOR * lat)
             for city, (lon, lat) in POSITIONS.items()
         }
+    
+    def draw_player_deck(self, player, cities):
+        """Draw from the player deck."""
+        for _ in range(2):
+            drawn_card = self.player_deck.pop()
+            if drawn_card != "Epidemic":
+                player.hand.append(drawn_card)
+            else:
+                self.epidemic_count += 1
+                self.infection_rate += 1
+                self.draw_epidemic_deck(cities, 1, 3, epidemic_infect=True)
+                self.infection_discard_pile = random.shuffle(self.infection_discard_pile) or self.infection_discard_pile
+                self.infection_deck.extend(self.infection_discard_pile)
+                self.infection_discard_pile = []
 
-    def draw_epidemic_deck(self, cities, n_draws, n_cubes):
+        self.draw_epidemic_deck(cities, self.infection_rate_track[self.infection_rate], 1)
+
+    def draw_epidemic_deck(self, cities, n_draws, n_cubes, epidemic_infect=False):
         """Draw from the epidemic deck."""
         for _ in range(n_draws):
-            target_city=self.infection_deck.pop()
+            if epidemic_infect:
+                target_city = self.infection_deck.pop(0)
+            else:
+                target_city=self.infection_deck.pop()
             self.infection_discard_pile.append(target_city)
             for city in cities.values():
                 if city.name==target_city:
+                    self.outbreak_track = []
                     if city.color=="#F1C40F":
-                        city.infection_yellow += n_cubes
-                        self.yellow_cubes -= n_cubes
+                        if city.infection_yellow==3:
+                            self.outbreak("yellow", city, cities)
+                        else:
+                            city.infection_yellow += n_cubes
+                            self.yellow_cubes -= n_cubes
                     if city.color=="#3498DB":
-                        city.infection_blue += n_cubes
-                        self.blue_cubes -= n_cubes
+                        if city.infection_blue==3:
+                            self.outbreak("blue", city, cities)
+                        else:
+                            city.infection_blue += n_cubes
+                            self.blue_cubes -= n_cubes
                     if city.color=="#E74C3C":
-                        city.infection_red += n_cubes
-                        self.red_cubes -= n_cubes
+                        if city.infection_red==3:
+                            self.outbreak("red", city, cities)
+                        else:
+                            city.infection_red += n_cubes
+                            self.red_cubes -= n_cubes
+                    if len(self.outbreak_track)>0:
+                        print(self.outbreak_track)
+                    break
 
+    def outbreak(self, color, city, cities):
+        self.outbreak_track.append(city.name)
+        self.outbreak_count += 1
+        for neighbor in city.connections:
+            if neighbor in self.outbreak_track:
+                continue
+            else:
+                current_infections = getattr(cities[neighbor], f"infection_{color.lower()}")
+                if current_infections == 3:
+                    self.outbreak(color, cities[neighbor], cities)
+                else:
+                    setattr(cities[neighbor], f"infection_{color.lower()}", current_infections + 1)
 
     def create_infection_deck(self):
         city_cards = list(CITIES.keys())
@@ -118,14 +163,20 @@ def main():
 
 
         if n % 4 == 0 and n != 0:
+
+            if player_1.active:
+                board.draw_player_deck(player_1, cities)
+            else:
+                board.draw_player_deck(player_2, cities)
+
             player_1.active = not player_1.active
             player_2.active = not player_2.active
 
         # Clear the current figure and redraw the map
         plt.clf()
-        renderer.draw_map(cities, player_1, player_2, board.infection_rate, board.epidemic_count, 
+        renderer.draw_map(cities, player_1, player_2, board.infection_rate_track[board.infection_rate], board.epidemic_count, 
                  board.outbreak_count, board.player_deck, board.infection_discard_pile, board.yellow_cubes, 
-                 board.blue_cubes, board.red_cubes)
+                 board.blue_cubes, board.red_cubes, board.yellow_cure, board.blue_cure, board.red_cure)
         
         if player_1.active:
             possible_actions_player_1 = player_1.action_mask(board, cities)
