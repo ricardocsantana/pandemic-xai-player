@@ -253,7 +253,7 @@ def main():
 
     for _ in range(100):
 
-        print("Starting a new game...")
+        #print("Starting a new game...")
 
         # Initialize the game board.
         board = Board()
@@ -282,9 +282,6 @@ def main():
             partner=player_1
         )
         player_1.partner = player_2
-
-        # Define the action space from player_1's available actions.
-        action_space = player_1.all_actions
 
         # Prepare the epidemic decks by drawing epidemic cards with varying cube counts.
         board.draw_epidemic_deck(cities, n_draws=2, n_cubes=3)
@@ -360,21 +357,10 @@ def main():
                     board.red_cure
                 )
 
-            # If player 1 is active, select and perform a random allowed action.
             if player_1.active:
-                possible_actions_player_1 = player_1.action_mask(board, cities)
-                valid_indices = [index for index, value in enumerate(possible_actions_player_1) if value == 1]
-                action_player_1 = action_space[random.choice(valid_indices)]
-                player_1.take_action(action_player_1, board, cities)
-                #print("1:", action_player_1)
-
-            # If player 2 is active, select and perform a random allowed action.
-            if player_2.active:
-                possible_actions_player_2 = player_2.action_mask(board, cities)
-                valid_indices = [index for index, value in enumerate(possible_actions_player_2) if value == 1]
-                action_player_2 = action_space[random.choice(valid_indices)]
-                player_2.take_action(action_player_2, board, cities)
-                #print("2:", action_player_2)
+                player_1.step(board, cities)
+            else:
+                player_2.step(board, cities)
 
             if render_mode == 1:
                 # Wait for a button press (key or mouse click) before continuing.

@@ -1,3 +1,4 @@
+import random
 from Constants import CITIES
 
 class Player:
@@ -111,7 +112,23 @@ class Player:
         # Build the action mask: mark each action in all_actions as allowed (1) or not allowed (0).
         action_mask = [1 if action in allowed_actions else 0 for action in self.all_actions]
 
-        return action_mask
+        return action_mask, allowed_actions
+    
+    def random_action(self, action_mask):
+        """
+        Randomly select an action from the allowed actions, based on the action mask.
+
+        Parameters:
+            action_mask: A list of integers (1 or 0) representing allowed actions.
+
+        Returns:
+            A string representing the selected action.
+        """
+        action_mask, _ = action_mask
+        # Select a random action from the allowed actions.
+        action_idx = random.choice([i for i, v in enumerate(action_mask) if v == 1])
+        action = self.all_actions[action_idx]
+        return action
 
     def take_action(self, action, board, cities):
         """
@@ -194,3 +211,18 @@ class Player:
                         break
                     if cities[card].color == color:
                         self.hand.remove(card)
+
+    def step(self, board, cities):
+        """
+        Take a step in the game, selecting and executing 4 actions.
+
+        Parameters:
+            board: The game board object, containing global game state.
+            cities: A dictionary mapping city names to city objects.
+
+        """
+
+        for _ in range(4):
+            action_mask = self.action_mask(board, cities)
+            action = self.random_action(action_mask)
+            self.take_action(action, board, cities)
