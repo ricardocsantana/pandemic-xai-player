@@ -265,7 +265,7 @@ def main():
         }
 
         # Initialize two players, both starting in "GENÈVE".
-        player_1 = Player(
+        player_1 = Player(1,
             cities["GENÈVE"],
             role="CONTAINMENT",
             color="brown",
@@ -273,7 +273,7 @@ def main():
             init_hand=board.player_1_hand,
             partner=None
         )
-        player_2 = Player(
+        player_2 = Player(2,
             cities["GENÈVE"],
             role="QUARANTINE",
             color="green",
@@ -321,10 +321,10 @@ def main():
             
             # Check for game over conditions.
             if board.check_win():
-                # print("Players have won the game!")
+                print("Players have won the game!")
                 break
             if board.check_loss():
-                # print("Players have lost the game!")
+                print("Players have lost the game!")
                 break
 
             # Every 4 iterations (except the first), draw cards for the active player and toggle turns.

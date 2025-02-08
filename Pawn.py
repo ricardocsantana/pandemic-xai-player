@@ -16,11 +16,12 @@ class Player:
         partner: The partner player with whom knowledge sharing is possible.
     """
 
-    def __init__(self, loc, role, color, shape, init_hand, partner):
+    def __init__(self, id, loc, role, color, shape, init_hand, partner):
         """
         Initialize the Player with its attributes.
 
         Parameters:
+            id: The player's ID.
             loc: The starting location (city object) of the player.
             role: The player's role.
             color: The player's color.
@@ -28,6 +29,7 @@ class Player:
             init_hand: The initial list of city cards in the player's hand.
             partner: The partner Player object.
         """
+        self.id = id
         self.loc = loc
         self.role = role
         self.color = color
@@ -214,7 +216,7 @@ class Player:
 
     def step(self, board, cities):
         """
-        Take a step in the game, selecting and executing 4 actions.
+        Take a step in the game, selecting and executing one action.
 
         Parameters:
             board: The game board object, containing global game state.
@@ -222,7 +224,7 @@ class Player:
 
         """
 
-        for _ in range(4):
-            action_mask = self.action_mask(board, cities)
-            action = self.random_action(action_mask)
-            self.take_action(action, board, cities)
+        action_mask = self.action_mask(board, cities)
+        action = self.random_action(action_mask)
+        print(self.id, action)
+        self.take_action(action, board, cities)
