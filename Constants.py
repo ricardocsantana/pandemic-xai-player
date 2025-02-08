@@ -26,6 +26,8 @@ POSITIONS = {
     "KYIV": (30.52, 50.45),
 }
 
+COLORMAP = {"YELLOW": "#F1C40F", "BLUE": "#3498DB", "RED": "#E74C3C"}
+
 COLORS = {
     "GENÈVE": "#F1C40F",
     "PARIS": "#3498DB",

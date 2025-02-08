@@ -1,5 +1,5 @@
 import random
-from Constants import CITIES
+from Constants import CITIES, COLORMAP
 
 class Player:
     """
@@ -208,11 +208,14 @@ class Player:
                 board.red_cure = True
 
             # Remove the 4 cards of the same color from the player's hand.
-            for n, card in enumerate(self.hand):
-                    if n == 4:
-                        break
-                    if cities[card].color == color:
-                        self.hand.remove(card)
+            cities_to_remove = []
+            for card in self.hand:
+                if cities[card].color == COLORMAP[color]:
+                    cities_to_remove.append(card)
+                if len(cities_to_remove) == 4:
+                    break
+            
+            self.hand = [city for city in self.hand if city not in cities_to_remove]
 
     def step(self, board, cities):
         """
