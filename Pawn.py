@@ -180,7 +180,6 @@ class Player:
 
         elif action_type == "FIND":
             # For FIND CURE, mark the cure as found for the specified disease color.
-            # TODO: Implement removal of 4 cards from the player's hand.
             color = tokens[-1]
             if color == "YELLOW":
                 board.yellow_cure = True
@@ -188,3 +187,10 @@ class Player:
                 board.blue_cure = True
             elif color == "RED":
                 board.red_cure = True
+
+            # Remove the 4 cards of the same color from the player's hand.
+            for n, card in enumerate(self.hand):
+                    if n == 4:
+                        break
+                    if cities[card].color == color:
+                        self.hand.remove(card)

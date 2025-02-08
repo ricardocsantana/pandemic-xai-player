@@ -139,8 +139,8 @@ class Board:
                             city.infection_red += n_cubes
                             self.red_cubes -= n_cubes
                     # If any outbreak occurred, print the outbreak track.
-                    if len(self.outbreak_track) > 0:
-                        print(self.outbreak_track)
+                    #if len(self.outbreak_track) > 0:
+                        #print(self.outbreak_track)
                     break
 
     def outbreak(self, color, city, cities):
@@ -247,130 +247,144 @@ def main():
       - Alternates between players, drawing cards, and taking actions.
       - Listens for a 'q' key press to quit the loop.
     """
-    # Initialize the game board.
-    board = Board()
 
-    # Create City objects for each city using scaled positions, predefined colors, and connections.
-    cities = {
-        name: City(name, board.pos[name], COLORS[name], CITIES[name])
-        for name in CITIES.keys()
-    }
+    render_mode = int(input("Choose render mode: 0 for train, 1 for human: "))
 
-    # Initialize two players, both starting in "GENÈVE".
-    player_1 = Player(
-        cities["GENÈVE"],
-        role="CONTAINMENT",
-        color="brown",
-        shape="square",
-        init_hand=board.player_1_hand,
-        partner=None
-    )
-    player_2 = Player(
-        cities["GENÈVE"],
-        role="QUARANTINE",
-        color="green",
-        shape="circle",
-        init_hand=board.player_2_hand,
-        partner=player_1
-    )
-    player_1.partner = player_2
 
-    # Define the action space from player_1's available actions.
-    action_space = player_1.all_actions
+    for _ in range(100):
 
-    # Prepare the epidemic decks by drawing epidemic cards with varying cube counts.
-    board.draw_epidemic_deck(cities, n_draws=2, n_cubes=3)
-    board.draw_epidemic_deck(cities, n_draws=2, n_cubes=2)
-    board.draw_epidemic_deck(cities, n_draws=2, n_cubes=1)
+        print("Starting a new game...")
 
-    # Initialize the renderer for drawing the game map.
-    renderer = Renderer(cities)
+        # Initialize the game board.
+        board = Board()
 
-    # Enable interactive mode in matplotlib and create a figure.
-    plt.ion()
-    fig = plt.figure(figsize=(18, 12))
+        # Create City objects for each city using scaled positions, predefined colors, and connections.
+        cities = {
+            name: City(name, board.pos[name], COLORS[name], CITIES[name])
+            for name in CITIES.keys()
+        }
 
-    # Control flag to handle quitting the game loop.
-    control = {"quit": False}
-
-    # Define an event handler to listen for key presses (specifically 'q' to quit).
-    def on_key(event):
-        if event.key == 'q':
-            control["quit"] = True
-
-    # Connect the key press event handler to the figure.
-    cid = fig.canvas.mpl_connect('key_press_event', on_key)
-
-    # Player 1 starts the game.
-    player_1.active = True
-
-    # Animation loop: run for up to 100 iterations or until 'q' is pressed.
-    for n in range(100):
-        # Quit the loop if the 'q' key has been pressed.
-        if control["quit"]:
-            print("Quitting the animation loop.")
-            break
-        
-        # Check for game over conditions.
-        if board.check_win():
-            print("Players have won the game!")
-            break
-        if board.check_loss():
-            print("Players have lost the game!")
-            break
-
-        # Every 4 iterations (except the first), draw cards for the active player and toggle turns.
-        if n % 4 == 0 and n != 0:
-            if player_1.active:
-                board.draw_player_deck(player_1, cities)
-            else:
-                board.draw_player_deck(player_2, cities)
-            # Toggle active status between players.
-            player_1.active = not player_1.active
-            player_2.active = not player_2.active
-
-        # Clear the current figure and redraw the game map.
-        plt.clf()
-        renderer.draw_map(
-            cities,
-            player_1,
-            player_2,
-            board.infection_rate_track[board.infection_rate],
-            board.epidemic_count,
-            board.outbreak_count,
-            board.player_deck,
-            board.infection_discard_pile,
-            board.yellow_cubes,
-            board.blue_cubes,
-            board.red_cubes,
-            board.yellow_cure,
-            board.blue_cure,
-            board.red_cure
+        # Initialize two players, both starting in "GENÈVE".
+        player_1 = Player(
+            cities["GENÈVE"],
+            role="CONTAINMENT",
+            color="brown",
+            shape="square",
+            init_hand=board.player_1_hand,
+            partner=None
         )
+        player_2 = Player(
+            cities["GENÈVE"],
+            role="QUARANTINE",
+            color="green",
+            shape="circle",
+            init_hand=board.player_2_hand,
+            partner=player_1
+        )
+        player_1.partner = player_2
 
-        # If player 1 is active, select and perform a random allowed action.
-        if player_1.active:
-            possible_actions_player_1 = player_1.action_mask(board, cities)
-            valid_indices = [index for index, value in enumerate(possible_actions_player_1) if value == 1]
-            action_player_1 = action_space[random.choice(valid_indices)]
-            player_1.take_action(action_player_1, board, cities)
-            print("1:", action_player_1)
+        # Define the action space from player_1's available actions.
+        action_space = player_1.all_actions
 
-        # If player 2 is active, select and perform a random allowed action.
-        if player_2.active:
-            possible_actions_player_2 = player_2.action_mask(board, cities)
-            valid_indices = [index for index, value in enumerate(possible_actions_player_2) if value == 1]
-            action_player_2 = action_space[random.choice(valid_indices)]
-            player_2.take_action(action_player_2, board, cities)
-            print("2:", action_player_2)
+        # Prepare the epidemic decks by drawing epidemic cards with varying cube counts.
+        board.draw_epidemic_deck(cities, n_draws=2, n_cubes=3)
+        board.draw_epidemic_deck(cities, n_draws=2, n_cubes=2)
+        board.draw_epidemic_deck(cities, n_draws=2, n_cubes=1)
 
-        # Wait for a button press (key or mouse click) before continuing.
-        plt.waitforbuttonpress()
+        if render_mode == 1:
+            # Initialize the renderer for drawing the game map.
+            renderer = Renderer(cities)
 
-    # Disconnect the event handler and disable interactive mode.
-    fig.canvas.mpl_disconnect(cid)
-    plt.ioff()
-    plt.show()
+            # Enable interactive mode in matplotlib and create a figure.
+            plt.ion()
+            fig = plt.figure(figsize=(18, 12))
+
+            # Control flag to handle quitting the game loop.
+            control = {"quit": False}
+
+            # Define an event handler to listen for key presses (specifically 'q' to quit).
+            def on_key(event):
+                if event.key == 'q':
+                    control["quit"] = True
+
+            # Connect the key press event handler to the figure.
+            cid = fig.canvas.mpl_connect('key_press_event', on_key)
+
+        # Player 1 starts the game.
+        player_1.active = True
+
+        # Animation loop: run for up to 100 iterations or until 'q' is pressed.
+        for n in range(100):
+
+            if render_mode == 1:
+                # Quit the loop if the 'q' key has been pressed.
+                if control["quit"]:
+                    print("Quitting the animation loop.")
+                    break
+            
+            # Check for game over conditions.
+            if board.check_win():
+                # print("Players have won the game!")
+                break
+            if board.check_loss():
+                # print("Players have lost the game!")
+                break
+
+            # Every 4 iterations (except the first), draw cards for the active player and toggle turns.
+            if n % 4 == 0 and n != 0:
+                if player_1.active:
+                    board.draw_player_deck(player_1, cities)
+                else:
+                    board.draw_player_deck(player_2, cities)
+                # Toggle active status between players.
+                player_1.active = not player_1.active
+                player_2.active = not player_2.active
+
+            if render_mode == 1:
+                # Clear the current figure and redraw the game map.
+                plt.clf()
+                renderer.draw_map(
+                    cities,
+                    player_1,
+                    player_2,
+                    board.infection_rate_track[board.infection_rate],
+                    board.epidemic_count,
+                    board.outbreak_count,
+                    board.player_deck,
+                    board.infection_discard_pile,
+                    board.yellow_cubes,
+                    board.blue_cubes,
+                    board.red_cubes,
+                    board.yellow_cure,
+                    board.blue_cure,
+                    board.red_cure
+                )
+
+            # If player 1 is active, select and perform a random allowed action.
+            if player_1.active:
+                possible_actions_player_1 = player_1.action_mask(board, cities)
+                valid_indices = [index for index, value in enumerate(possible_actions_player_1) if value == 1]
+                action_player_1 = action_space[random.choice(valid_indices)]
+                player_1.take_action(action_player_1, board, cities)
+                #print("1:", action_player_1)
+
+            # If player 2 is active, select and perform a random allowed action.
+            if player_2.active:
+                possible_actions_player_2 = player_2.action_mask(board, cities)
+                valid_indices = [index for index, value in enumerate(possible_actions_player_2) if value == 1]
+                action_player_2 = action_space[random.choice(valid_indices)]
+                player_2.take_action(action_player_2, board, cities)
+                #print("2:", action_player_2)
+
+            if render_mode == 1:
+                # Wait for a button press (key or mouse click) before continuing.
+                plt.waitforbuttonpress()
+
+        if render_mode == 1:
+            # Disconnect the event handler and disable interactive mode.
+            fig.canvas.mpl_disconnect(cid)
+            plt.ioff()
+            plt.show()
 
 
 if __name__ == "__main__":

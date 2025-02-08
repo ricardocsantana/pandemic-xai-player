@@ -21,7 +21,7 @@ class Renderer:
         Returns:
             networkx.Graph: A graph with cities as nodes and connections as edges.
         """
-        graph = nx.Graph()
+        graph = nx.Graph()#
         # Iterate through each city and its neighbors to add edges.
         for city in cities.values():
             for neighbor in city.connections:
@@ -149,9 +149,9 @@ class Renderer:
             player_2 (Player): The second player.
         """
         # Draw the infection discard pile.
-        plt.text(x=-1900, y=3800,
+        plt.text(x=-1900, y=4000,
                  s="Infection discard pile:\n" + "\n".join(infection_discard_pile),
-                 ha='center', va='center', fontsize=12, weight="bold")
+                 ha='center', va='top', fontsize=12, weight="bold")
         
         # Draw Player 1's role and hand.
         plt.text(x=-2200, y=3000,
