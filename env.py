@@ -1,11 +1,11 @@
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
-from Game import Board
-from Location import City
-from Pawn import Player
-from Render import Renderer
-from Constants import CITIES, COLORS
+from board import Board
+from location import City
+from player import Player
+from render import Renderer
+from contants import CITIES, COLORS
 
 class PandemicEnv(gym.Env):
     """

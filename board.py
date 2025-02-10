@@ -1,5 +1,5 @@
 import random
-from Constants import POSITIONS, CITIES
+from contants import POSITIONS, CITIES
 
 SCALING_FACTOR = 75
 

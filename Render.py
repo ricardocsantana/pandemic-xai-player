@@ -1,4 +1,4 @@
-from Constants import COLORS, CITIES
+from contants import COLORS, CITIES
 import networkx as nx
 import matplotlib.pyplot as plt
 
