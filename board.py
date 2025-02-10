@@ -202,9 +202,9 @@ class Board:
 
         # Create three piles, each with an Epidemic card inserted.
         piles = [
-            city_cards[6:10] + ["Epidemic"],
-            city_cards[10:14] + ["Epidemic"],
-            city_cards[14:] + ["Epidemic"]
+            city_cards[6:12] + ["Epidemic"],
+            city_cards[12:18] + ["Epidemic"],
+            city_cards[18:] + ["Epidemic"]
         ]
 
         # Shuffle each pile individually.

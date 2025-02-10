@@ -5,6 +5,7 @@ from board import Board
 from location import City
 from player import Player
 from render import Renderer
+from greedy import GreedyAgent
 from contants import CITIES, COLORS
 
 class PandemicEnv(gym.Env):
@@ -128,3 +129,16 @@ class PandemicEnv(gym.Env):
         # Encode player locations
         return obs
 
+def main():
+
+    # Initialize the environment
+    env = PandemicEnv()
+
+    # Initialize the greedy agent
+    greedy_agent = GreedyAgent(env)
+
+    # Run the greedy agent for 5 episodes
+    greedy_agent.play(episodes=50)
+
+if __name__ == "__main__":
+    main()
