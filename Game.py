@@ -1,9 +1,5 @@
-from matplotlib import pyplot as plt
 import random
-from Pawn import Player
-from Location import City
-from Render import Renderer
-from Constants import POSITIONS, CITIES, COLORS
+from Constants import POSITIONS, CITIES
 
 SCALING_FACTOR = 75
 
@@ -41,6 +37,7 @@ class Board:
 
         # Initialize the infection discard pile and outbreak tracking.
         self.infection_discard_pile = []
+        self.player_discard_pile = []
         self.outbreak_track = []
 
     def calculate_positions(self):
@@ -120,19 +117,19 @@ class Board:
                     # Reset outbreak tracking for this epidemic event.
                     self.outbreak_track = []
                     # Check the city's color and apply infection.
-                    if city.color == "#F1C40F":  # Yellow city.
+                    if city.color == "YELLOW":  # Yellow city.
                         if city.infection_yellow == 3:
                             self.outbreak("yellow", city, cities)
                         else:
                             city.infection_yellow += n_cubes
                             self.yellow_cubes -= n_cubes
-                    if city.color == "#3498DB":  # Blue city.
+                    if city.color == "BLUE":  # Blue city.
                         if city.infection_blue == 3:
                             self.outbreak("blue", city, cities)
                         else:
                             city.infection_blue += n_cubes
                             self.blue_cubes -= n_cubes
-                    if city.color == "#E74C3C":  # Red city.
+                    if city.color == "RED":  # Red city.
                         if city.infection_red == 3:
                             self.outbreak("red", city, cities)
                         else:
@@ -236,143 +233,4 @@ class Board:
         """
         return self.outbreak_count >= 4 or self.yellow_cubes <= 0 \
     or self.blue_cubes <= 0 or self.red_cubes <= 0 or len(self.player_deck) <= 1
-
-def main():
-    """
-    Main function to initialize the game board, cities, players, and start the game loop.
-    
-    The game loop:
-      - Sets up the game state including drawing initial epidemic cards.
-      - Enters an interactive loop with matplotlib for rendering.
-      - Alternates between players, drawing cards, and taking actions.
-      - Listens for a 'q' key press to quit the loop.
-    """
-
-    render_mode = int(input("Choose render mode: 0 for train, 1 for human: "))
-
-
-    for _ in range(100):
-
-        #print("Starting a new game...")
-
-        # Initialize the game board.
-        board = Board()
-
-        # Create City objects for each city using scaled positions, predefined colors, and connections.
-        cities = {
-            name: City(name, board.pos[name], COLORS[name], CITIES[name])
-            for name in CITIES.keys()
-        }
-
-        # Initialize two players, both starting in "GENÈVE".
-        player_1 = Player(1,
-            cities["GENÈVE"],
-            role="CONTAINMENT",
-            color="brown",
-            shape="square",
-            init_hand=board.player_1_hand,
-            partner=None
-        )
-        player_2 = Player(2,
-            cities["GENÈVE"],
-            role="QUARANTINE",
-            color="green",
-            shape="circle",
-            init_hand=board.player_2_hand,
-            partner=player_1
-        )
-        player_1.partner = player_2
-
-        # Prepare the epidemic decks by drawing epidemic cards with varying cube counts.
-        board.draw_epidemic_deck(cities, n_draws=2, n_cubes=3)
-        board.draw_epidemic_deck(cities, n_draws=2, n_cubes=2)
-        board.draw_epidemic_deck(cities, n_draws=2, n_cubes=1)
-
-        if render_mode == 1:
-            # Initialize the renderer for drawing the game map.
-            renderer = Renderer(cities)
-
-            # Enable interactive mode in matplotlib and create a figure.
-            plt.ion()
-            fig = plt.figure(figsize=(18, 12))
-
-            # Control flag to handle quitting the game loop.
-            control = {"quit": False}
-
-            # Define an event handler to listen for key presses (specifically 'q' to quit).
-            def on_key(event):
-                if event.key == 'q':
-                    control["quit"] = True
-
-            # Connect the key press event handler to the figure.
-            cid = fig.canvas.mpl_connect('key_press_event', on_key)
-
-        # Player 1 starts the game.
-        player_1.active = True
-
-        # Animation loop: run for up to 100 iterations or until 'q' is pressed.
-        for n in range(100):
-
-            if render_mode == 1:
-                # Quit the loop if the 'q' key has been pressed.
-                if control["quit"]:
-                    print("Quitting the animation loop.")
-                    break
-            
-            # Check for game over conditions.
-            if board.check_win():
-                print("Players have won the game!")
-                break
-            if board.check_loss():
-                print("Players have lost the game!")
-                break
-
-            # Every 4 iterations (except the first), draw cards for the active player and toggle turns.
-            if n % 4 == 0 and n != 0:
-                if player_1.active:
-                    board.draw_player_deck(player_1, cities)
-                else:
-                    board.draw_player_deck(player_2, cities)
-                # Toggle active status between players.
-                player_1.active = not player_1.active
-                player_2.active = not player_2.active
-
-            if render_mode == 1:
-                # Clear the current figure and redraw the game map.
-                plt.clf()
-                renderer.draw_map(
-                    cities,
-                    player_1,
-                    player_2,
-                    board.infection_rate_track[board.infection_rate],
-                    board.epidemic_count,
-                    board.outbreak_count,
-                    board.player_deck,
-                    board.infection_discard_pile,
-                    board.yellow_cubes,
-                    board.blue_cubes,
-                    board.red_cubes,
-                    board.yellow_cure,
-                    board.blue_cure,
-                    board.red_cure
-                )
-
-            if player_1.active:
-                player_1.step(board, cities)
-            else:
-                player_2.step(board, cities)
-
-            if render_mode == 1:
-                # Wait for a button press (key or mouse click) before continuing.
-                plt.waitforbuttonpress()
-
-        if render_mode == 1:
-            # Disconnect the event handler and disable interactive mode.
-            fig.canvas.mpl_disconnect(cid)
-            plt.ioff()
-            plt.show()
-
-
-if __name__ == "__main__":
-    main()
 

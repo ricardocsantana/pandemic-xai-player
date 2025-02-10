@@ -1,5 +1,5 @@
 import random
-from Constants import CITIES, COLORMAP
+from Constants import CITIES
 
 class Player:
     """
@@ -143,6 +143,11 @@ class Player:
         """
         tokens = action.split()
         action_type = tokens[0]
+        init_board = board
+        init_cities = cities
+        init_hand = self.hand
+        init_loc = self.loc
+        init_partner_hand = self.partner.hand
 
         if action_type == "DRIVE":
             # For a DRIVE action, move the player to the target city (must be directly connected).
@@ -154,12 +159,14 @@ class Player:
             target_city_name = tokens[-1]
             self.hand.remove(target_city_name)
             self.loc = cities[target_city_name]
+            board.player_discard_pile.append(target_city_name)  # Add the card to the discard pile
 
         elif action_type == "CHARTER":
             # For a CHARTER FLIGHT, remove the card corresponding to the current city and fly to any city.
             self.hand.remove(self.loc.name)
             target_city_name = tokens[-1]
             self.loc = cities[target_city_name]
+            board.player_discard_pile.append(self.loc.name)  # Add the card to the discard pile
 
         elif action_type == "TREAT":
             # For a TREAT action, remove infection cubes from the current city.
@@ -210,14 +217,17 @@ class Player:
             # Remove the 4 cards of the same color from the player's hand.
             cities_to_remove = []
             for card in self.hand:
-                if cities[card].color == COLORMAP[color]:
+                if cities[card].color == color:
                     cities_to_remove.append(card)
+                    board.player_discard_pile.append(card)  # Add the card to the discard pile
                 if len(cities_to_remove) == 4:
                     break
             
             self.hand = [city for city in self.hand if city not in cities_to_remove]
 
-    def step(self, board, cities):
+        return init_board, init_cities, init_hand, init_loc, init_partner_hand
+
+    def step(self, board, cities, action=None):
         """
         Take a step in the game, selecting and executing one action.
 
@@ -228,6 +238,7 @@ class Player:
         """
 
         action_mask = self.action_mask(board, cities)
-        action = self.random_action(action_mask)
+        if action is None:
+            action = self.random_action(action_mask)
         print(self.id, action)
         self.take_action(action, board, cities)

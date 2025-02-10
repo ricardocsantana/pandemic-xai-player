@@ -1,4 +1,4 @@
-from Constants import COLORS
+from Constants import COLORS, CITIES
 import networkx as nx
 import matplotlib.pyplot as plt
 
@@ -8,24 +8,27 @@ class Renderer:
     Utilizes networkx to generate the city network and matplotlib for drawing.
     """
     
-    def __init__(self, cities):
+    def __init__(self):
         """
         Initialize the Renderer by creating the network graph of cities.
         """
-        self.graph = self.create_graph(cities)
+        self.graph = self.create_graph()
+        # Enable interactive mode in matplotlib and create a figure.
+        plt.ion()
+        plt.figure(figsize=(18, 12))
 
-    def create_graph(self, cities):
+    def create_graph(self):
         """
         Create a network graph of the cities based on their connections.
 
         Returns:
             networkx.Graph: A graph with cities as nodes and connections as edges.
         """
-        graph = nx.Graph()#
+        graph = nx.Graph()
         # Iterate through each city and its neighbors to add edges.
-        for city in cities.values():
-            for neighbor in city.connections:
-                graph.add_edge(city.name, neighbor)
+        for city in CITIES.keys():
+            for neighbor in CITIES[city]:
+                graph.add_edge(city, neighbor)
         return graph
 
     def draw_city_labels(self, cities):
@@ -75,19 +78,19 @@ class Renderer:
         plt.text(x=-1000, y=4700,
                  s=f"{yellow_cubes} yellow cubes left\nTreated={yellow_cure}",
                  ha='center', va='center', fontsize=12,
-                 bbox=dict(facecolor='#F1C40F', edgecolor="yellow", alpha=0.3, boxstyle="square, pad=.1"))
+                 bbox=dict(facecolor='YELLOW', edgecolor="yellow", alpha=0.3, boxstyle="square, pad=.1"))
 
         # Display information for blue cubes.
         plt.text(x=-250, y=4700,
                  s=f"{blue_cubes} blue cubes left\nTreated={blue_cure}",
                  ha='center', va='center', fontsize=12,
-                 bbox=dict(facecolor='#3498DB', edgecolor="blue", alpha=0.3, boxstyle="square, pad=.1"))
+                 bbox=dict(facecolor='BLUE', edgecolor="blue", alpha=0.3, boxstyle="square, pad=.1"))
 
         # Display information for red cubes.
         plt.text(x=450, y=4700,
                  s=f"{red_cubes} red cubes left\nTreated={red_cure}",
                  ha='center', va='center', fontsize=12,
-                 bbox=dict(facecolor='#E74C3C', edgecolor="red", alpha=0.3, boxstyle="square, pad=.1"))
+                 bbox=dict(facecolor='RED', edgecolor="red", alpha=0.3, boxstyle="square, pad=.1"))
 
     def draw_player_info(self, player_1, player_2):
         """
@@ -122,21 +125,21 @@ class Renderer:
                 plt.text(x=city.pos[0] + 10, y=city.pos[1] + 75,
                          s=city.infection_yellow, ha='left', va='bottom',
                          fontsize=12, weight="bold",
-                         bbox=dict(facecolor="#F1C40F", edgecolor="orange", alpha=0.3,
+                         bbox=dict(facecolor="YELLOW", edgecolor="orange", alpha=0.3,
                                    boxstyle="square, pad=.1"))
             # Display blue infection cubes if present.
             if city.infection_blue != 0:
                 plt.text(x=city.pos[0] + 90, y=city.pos[1] + 75,
                          s=city.infection_blue, ha='left', va='bottom',
                          fontsize=12, weight="bold",
-                         bbox=dict(facecolor="#3498DB", edgecolor="blue", alpha=0.3,
+                         bbox=dict(facecolor="BLUE", edgecolor="blue", alpha=0.3,
                                    boxstyle="square, pad=.1"))
             # Display red infection cubes if present.
             if city.infection_red != 0:
                 plt.text(x=city.pos[0] + 170, y=city.pos[1] + 75,
                          s=city.infection_red, ha='left', va='bottom',
                          fontsize=12, weight="bold",
-                         bbox=dict(facecolor="#E74C3C", edgecolor="red", alpha=0.3,
+                         bbox=dict(facecolor="RED", edgecolor="red", alpha=0.3,
                                    boxstyle="square, pad=.1"))
 
     def draw_decks_info(self, infection_discard_pile, player_1, player_2):
@@ -166,6 +169,9 @@ class Renderer:
     def draw_map(self, cities, player_1, player_2, infection_rate, epidemic_count,
                  outbreak_count, player_deck, infection_discard_pile, yellow_cubes,
                  blue_cubes, red_cubes, yellow_cure, blue_cure, red_cure):
+        
+        # Clear the current figure and redraw the game map.
+        plt.clf()
         """
         Draw the complete game map including the city network, labels, infection info, player info, and decks info.
 
@@ -206,3 +212,6 @@ class Renderer:
         plt.xlim(-2750, 3250)
         plt.ylim(1750, 5000)
         plt.draw()
+
+        # Wait for a button press (key or mouse click) before continuing.
+        plt.waitforbuttonpress()
