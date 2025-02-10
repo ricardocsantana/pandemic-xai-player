@@ -199,6 +199,7 @@ class Board:
         # Deal 3 initial cards to each player.
         init_hand_1, init_hand_2 = city_cards[:3], city_cards[3:6]
 
+
         # Create three piles, each with an Epidemic card inserted.
         piles = [
             city_cards[6:10] + ["Epidemic"],
@@ -212,7 +213,6 @@ class Board:
 
         # Combine the piles to form the final player deck.
         player_deck = sum(piles, [])  # Flatten the list of piles.
-
         return init_hand_1, init_hand_2, player_deck
     
     def check_win(self):

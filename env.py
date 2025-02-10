@@ -15,6 +15,22 @@ class PandemicEnv(gym.Env):
     def __init__(self):
         super(PandemicEnv, self).__init__()
 
+        self.renderer = Renderer()
+        self.graph = self.renderer.graph
+
+        # Track the number of actions taken in a turn
+        self.actions_taken = 0
+
+        # Define action space (number of possible actions)
+        self.action_space = spaces.Discrete(24*3+7)
+
+        # Define observation space (game state representation)
+        self.observation_space = spaces.MultiBinary(332)
+
+    def reset(self):
+        """
+        Resets the game state to start a new episode.
+        """
         # Initialize the game board
         self.board = Board()
         self.cities = {
@@ -44,33 +60,10 @@ class PandemicEnv(gym.Env):
         self.player_1.partner = self.player_2
         self.current_player = self.player_1
 
-        self.renderer = Renderer()
-        self.graph = self.renderer.graph
-
-        # Track the number of actions taken in a turn
-        self.actions_taken = 0
-
-        # Define action space (number of possible actions)
-        self.action_space = spaces.Discrete(len(self.current_player.all_actions))
-
-        # Define observation space (game state representation)
-        self.observation_space = spaces.MultiBinary(332)
-
-    def reset(self):
-        """
-        Resets the game state to start a new episode.
-        """
-        self.board = Board()
-        self.cities = {
-            name: City(name, self.board.pos[name], COLORS[name], CITIES[name])
-            for name in CITIES.keys()
-        }
-
         self.board.draw_epidemic_deck(self.cities, n_draws=2, n_cubes=3)
         self.board.draw_epidemic_deck(self.cities, n_draws=2, n_cubes=2)
         self.board.draw_epidemic_deck(self.cities, n_draws=2, n_cubes=1)
-        self.player_1.loc = self.cities["GENÈVE"]
-        self.player_2.loc = self.cities["GENÈVE"]
+        
         self.current_player = self.player_1
         self.actions_taken = 0  # Reset action counter
 
@@ -83,8 +76,8 @@ class PandemicEnv(gym.Env):
         """
 
         # Render the state after each action
-        self.render()
-        
+        # self.render()
+
         action = self.current_player.all_actions[action_idx]
         self.current_player.take_action(action, self.board, self.cities)
 

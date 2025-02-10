@@ -22,7 +22,8 @@ class GreedyAgent:
                 continue
             temp_env = copy.deepcopy(self.env)
             temp_env.current_player.take_action(action, temp_env.board, temp_env.cities)
-            evaluator = StateEvaluator(action, temp_env.board, [temp_env.player_1, temp_env.player_2], temp_env.graph, temp_env.cities)
+            evaluator = StateEvaluator(action, temp_env.board, temp_env.current_player,
+                                       [temp_env.player_1, temp_env.player_2], temp_env.graph, temp_env.cities)
             h_value = evaluator.h_state()
             if h_value < best_value:
                 best_value = h_value
@@ -46,4 +47,4 @@ class GreedyAgent:
                     
                     if done:
                         print(f"Game ended with reward: {reward}")
-                        return
+                        break

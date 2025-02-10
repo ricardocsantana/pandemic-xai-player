@@ -2,12 +2,13 @@ import networkx as nx
 
 class StateEvaluator:
 
-    def __init__(self, action, board, players, graph, cities):
+    def __init__(self, action, board, current_player, players, graph, cities):
         self.action = action
         self.graph = graph
         self.cities = cities
         self.board = board
-        self.players = [player for player in players]
+        self.current_player = current_player
+        self.players = players
 
     def h_dsurv(self):
         h_dsurv = 0
@@ -78,10 +79,6 @@ class StateEvaluator:
         return h_cure
 
     def h_state(self):
-        for player in self.players:
-            if player.active:
-                player.take_action(self.action, self.board, self.cities)
-
         h_dsurv = self.h_dsurv()
         h_dcure = self.h_dcure()
         h_cards = self.h_cards()
@@ -89,4 +86,4 @@ class StateEvaluator:
         h_inf = self.h_inf()
         h_cure = self.h_cure()
 
-        return 1*h_dsurv + 0*h_dcure + h_cards + 0.5*h_disc + 0.6*h_inf + 24*h_cure
+        return 0.5*h_dsurv + 0.5*h_dcure + h_cards + 0.5*h_disc + 0.6*h_inf + 24*h_cure

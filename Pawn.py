@@ -35,7 +35,6 @@ class Player:
         self.color = color
         self.shape = shape
         self.hand = init_hand
-        self.active = False  # Indicates if it's the player's turn
 
         # Build the list of all possible actions.
         # The first list comprehension generates movement actions:
