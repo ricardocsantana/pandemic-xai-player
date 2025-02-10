@@ -1,5 +1,5 @@
 import copy
-from state_eval_heur import StateEvaluator
+from state_eval import StateEvaluator
 
 class GreedyAgent:
     """
