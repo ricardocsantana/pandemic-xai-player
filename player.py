@@ -1,5 +1,5 @@
 import random
-from contants import CITIES
+from constants import CITIES
 
 class Player:
     """

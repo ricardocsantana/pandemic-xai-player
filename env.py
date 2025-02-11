@@ -6,7 +6,7 @@ from location import City
 from player import Player
 from render import Renderer
 from greedy import GreedyAgent
-from contants import CITIES, COLORS
+from constants import CITIES, COLORS
 
 class PandemicEnv(gym.Env):
     """

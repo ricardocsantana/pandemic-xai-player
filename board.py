@@ -1,5 +1,5 @@
 import random
-from contants import POSITIONS, CITIES
+from constants import POSITIONS, CITIES
 
 SCALING_FACTOR = 75
 
@@ -206,7 +206,6 @@ class Board:
             city_cards[12:18] + ["Epidemic"],
             city_cards[18:] + ["Epidemic"]
         ]
-
         # Shuffle each pile individually.
         for pile in piles:
             random.shuffle(pile)
@@ -233,4 +232,3 @@ class Board:
         """
         return self.outbreak_count >= 4 or self.yellow_cubes <= 0 \
     or self.blue_cubes <= 0 or self.red_cubes <= 0 or len(self.player_deck) <= 1
-
