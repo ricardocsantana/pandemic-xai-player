@@ -28,7 +28,7 @@ class PandemicEnv(gym.Env):
         self.action_space = spaces.Discrete(24*3+7)
 
         # Define observation space (game state representation)
-        self.observation_space = spaces.MultiBinary(332)
+        self.observation_space = spaces.Box(low=0, high=1, shape=(222,), dtype=np.float32)
 
     def reset(self):
         """
@@ -133,10 +133,41 @@ class PandemicEnv(gym.Env):
         """
         Returns a vector representation of the game state.
         """
-        obs = np.zeros(332, dtype=np.bool)
+        obs = {}
+
+        for city in self.cities.values():
+            partial_obs = []
+            partial_obs.append(city.infection_yellow / 3)
+            partial_obs.append(city.infection_blue / 3)
+            partial_obs.append(city.infection_red / 3)
+            partial_obs.append(1 if city.name in self.player_1.hand else 0)
+            partial_obs.append(1 if city == self.player_1.loc else 0)
+            partial_obs.append(1 if city.name in self.player_2.hand else 0)
+            partial_obs.append(1 if city == self.player_2.loc else 0)
+            partial_obs.append(1 if city.name in self.board.infection_discard_pile else 0)
+            partial_obs.append(1 if city.name in self.board.player_discard_pile else 0)
+            obs[city.name] = partial_obs
+
+        obs["Player turn"] = self.current_player.id - 1
+        obs["Outbreak count"] = self.board.outbreak_count / 3
+        obs["Infection rate"] = self.board.infection_rate / 3
+        obs["Yellow cure"] = self.board.yellow_cure
+        obs["Blue cure"] = self.board.blue_cure
+        obs["Red cure"] = self.board.red_cure
+
+        obs_data = []
+        for _, value in obs.items():
+            if isinstance(value, list):
+                obs_data.extend(value)
+            else:
+                obs_data.append(value)
+
+        obs_data = np.array(obs_data, dtype=np.float32)
+
+        # print(obs_data)
 
         # Encode player locations
-        return obs
+        return obs_data
 
 def main():
 
@@ -147,7 +178,7 @@ def main():
     greedy_agent = GreedyAgent(env)
 
     # Run the greedy agent for 50 episodes
-    greedy_agent.play(episodes=500)
+    greedy_agent.play(episodes=100)
 
     print(f"Win rate: {env.win_score.count(1)*100 / len(env.win_score)}%")
     env.close()

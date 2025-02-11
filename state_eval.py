@@ -26,15 +26,16 @@ class StateEvaluator:
         total_infection = 0
         # For each player and each city, calculate:
         #   (distance from player to city) * (total infection level in the city)
-        for player in self.players:
-            for city in self.cities.keys():
-                city_infection = (
+        
+        for city in self.cities.keys():
+            city_infection = (
                     self.cities[city].infection_red +
                     self.cities[city].infection_blue +
                     self.cities[city].infection_yellow
                 )
-                h_dsurv += nx.shortest_path_length(self.graph, city, player.loc.name) * city_infection
-                total_infection += city_infection
+            min_distance = min([nx.shortest_path_length(self.graph, city, player.loc.name) for player in self.players])
+            h_dsurv += min_distance * city_infection
+            total_infection += city_infection
 
         # Prevent division by zero.
         return h_dsurv / total_infection if total_infection != 0 else 0
@@ -121,24 +122,24 @@ class StateEvaluator:
 
         return h_cure
 
-    def h_state(self, goal):
+    def h_state(self, goal, action):
         """
         Combines all heuristics into a single state evaluation metric using fixed weights.
         The formula is:
           0.5 * h_dsurv + 0.5 * h_dcure + h_cards + 0.5 * h_disc + 0.6 * h_inf + 24 * h_cure
         A lower score typically indicates a more favorable game state.
         """
-        h_dsurv = self.h_dsurv()
-        h_dcure = self.h_dcure()
+        h_dsurv = (1 - goal) * self.h_dsurv()
+        h_dcure = goal * self.h_dcure()
         h_cards = self.h_cards()
         h_disc = self.h_disc()
         h_inf = self.h_inf()
         h_cure = self.h_cure()
+        '''
+        print({"Action": action, "h_dsurv": round(h_dsurv, 2), 
+               "h_dcure": round(h_dcure, 2), "h_cards": round(h_cards, 2),
+               "h_disc": round(h_disc, 2), "h_inf": round(h_inf, 2), 
+               "h_cure": round(h_cure, 2)})
+        '''
 
-        if goal:
-
-            return 0 * h_dsurv + 0.5 * h_dcure + h_cards + 0.5 * h_disc + 0.6 * h_inf + 24 * h_cure
-        
-        else:
-
-            return 0.5 * h_dsurv + 0 * h_dcure + h_cards + 0.5 * h_disc + 0.6 * h_inf + 24 * h_cure
+        return 0.5 * h_dsurv + 0.5 * h_dcure + h_cards + 0.5 * h_disc + 0.6 * h_inf + 24 * h_cure

@@ -10,36 +10,22 @@ class GreedyAgent:
     def __init__(self, env):
         self.env = env
 
-    def check_hands(self, player_1, player_2, color, cities):
-
-        player_1_hand_by_color = [cities[city].color for city in player_1.hand]
-        player_2_hand_by_color = [cities[city].color for city in player_2.hand]
-
-        if player_1_hand_by_color.count(color) >= 4:
-            return True
-        elif player_1_hand_by_color.count(color) == 3 and player_2_hand_by_color.count(color) >= 1:
-            return True
-        elif player_2_hand_by_color.count(color) >= 4:
-            return True
-        elif player_2_hand_by_color.count(color) == 3 and player_1_hand_by_color.count(color) >= 1:
-            return True
-        else:
-            return False
-
-    def choose_player_goal(self):
+    def choose_player_goal(self, player_hand, cities):
 
         treat_yellow_disease = False
         treat_blue_disease = False
         treat_red_disease = False
 
+        player_hand_by_color = [cities[city].color for city in player_hand]
+
         if not self.env.board.yellow_cure:
-            treat_yellow_disease = self.check_hands(self.env.player_1, self.env.player_2, "YELLOW", self.env.cities)
+            treat_yellow_disease = 1 if player_hand_by_color.count("YELLOW") >= 4 else 0
             # print("YELLOW", treat_yellow_disease)
         if not self.env.board.blue_cure:
-            treat_blue_disease = self.check_hands(self.env.player_1, self.env.player_2, "BLUE", self.env.cities)
+            treat_blue_disease = 1 if player_hand_by_color.count("BLUE") >= 4 else 0
             # print("BLUE", treat_blue_disease)
         if not self.env.board.red_cure:
-            treat_red_disease = self.check_hands(self.env.player_1, self.env.player_2, "RED", self.env.cities)
+            treat_red_disease = 1 if player_hand_by_color.count("RED") >= 4 else 0
             # print("RED", treat_red_disease)
 
         treat_disease = treat_yellow_disease or treat_blue_disease or treat_red_disease
@@ -48,6 +34,10 @@ class GreedyAgent:
         return treat_disease
     
     def select_discard(self, player_id, player_hand):
+        """
+        Selects the best cards to discard from the player's hand.
+        """
+        
         n_discard = len(player_hand) - 6
         best_cards = None
         best_value = float("inf")
@@ -59,7 +49,7 @@ class GreedyAgent:
             evaluator = StateEvaluator(temp_env.board, temp_env.current_player,
                         temp_env.players, temp_env.graph, temp_env.cities)
             
-            h_value = evaluator.h_state(1)
+            h_value = evaluator.h_state(1, None)
             if h_value < best_value:
                 best_value = h_value
                 best_cards = cards
@@ -72,9 +62,12 @@ class GreedyAgent:
         Evaluates all actions and selects the one with the lowest heuristic value.
         """
         best_action = None
+        best_action_idx = None
         best_value = float("inf")
         _, allowed_actions = self.env.current_player.action_mask(self.env.board, self.env.cities)
-        goal = self.choose_player_goal()
+        goal = self.choose_player_goal(self.env.current_player.hand, self.env.cities)
+        if goal:
+            print(f"Player {self.env.current_player.id} is trying to cure a disease.")
 
         for idx, action in enumerate(self.env.current_player.all_actions):
             if action not in allowed_actions:
@@ -82,13 +75,16 @@ class GreedyAgent:
             temp_env = copy.deepcopy(self.env)
             temp_env.current_player.take_action(action, temp_env.board, temp_env.cities)
             evaluator = StateEvaluator(temp_env.board, temp_env.current_player,
-                                       [temp_env.player_1, temp_env.player_2], temp_env.graph, temp_env.cities)
-            h_value = evaluator.h_state(goal)
+                                        [temp_env.player_1, temp_env.player_2], temp_env.graph, temp_env.cities)
+            h_value = evaluator.h_state(goal, action)
             if h_value < best_value:
                 best_value = h_value
-                best_action = idx
+                best_action = action
+                best_action_idx = idx
 
-        return best_action
+        # print(best_action)
+        
+        return best_action_idx
 
     def play(self, episodes=1):
         """
@@ -108,7 +104,6 @@ class GreedyAgent:
                         if len(player.hand) > 6:
                             discard = self.select_discard(player.id, player.hand)
                             player.discard_cards(discard, self.env.board)
-                            print(f"Player {player.id} discarded {discard}")
                     
                     if done:
                         print(f"Game ended with reward: {reward}")
