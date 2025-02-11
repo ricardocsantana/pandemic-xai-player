@@ -21,6 +21,7 @@ class PandemicEnv(gym.Env):
 
         # Track the number of actions taken in a turn
         self.actions_taken = 0
+        self.game_number = 0
 
         # Define action space (number of possible actions)
         self.action_space = spaces.Discrete(24*3+7)
@@ -67,6 +68,7 @@ class PandemicEnv(gym.Env):
         
         self.current_player = self.player_1
         self.actions_taken = 0  # Reset action counter
+        self.game_number += 1  # Increment game number
 
         return self.get_observation()
 
@@ -77,7 +79,7 @@ class PandemicEnv(gym.Env):
         """
 
         # Render the state after each action
-        # self.render()
+        self.render()
 
         action = self.current_player.all_actions[action_idx]
         self.current_player.take_action(action, self.board, self.cities)
@@ -117,7 +119,8 @@ class PandemicEnv(gym.Env):
             self.board.red_cubes,
             self.board.yellow_cure,
             self.board.blue_cure,
-            self.board.red_cure
+            self.board.red_cure,
+            self.game_number
         )
 
     def get_observation(self):

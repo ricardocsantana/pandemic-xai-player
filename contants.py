@@ -54,6 +54,11 @@ COLORS = {
     "KYIV": "RED",
 }
 
+COLOR_HEX = {
+    "YELLOW": "#FFD700",
+    "BLUE":   "#1E90FF",
+    "RED":    "#FF6347",
+}
 
 CITIES = {
     "GENÈVE": ["MADRID", "PARIS", "PRAHA", "WIEN", "ROMA"],

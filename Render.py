@@ -1,4 +1,4 @@
-from contants import COLORS, CITIES
+from contants import COLORS, CITIES, COLOR_HEX
 import networkx as nx
 import matplotlib.pyplot as plt
 
@@ -67,7 +67,7 @@ class Renderer:
         # Display the infection rate.
         plt.text(-1900, 4700, f"Infection\nrate {infection_rate}",
                  ha='center', va='center', fontsize=12, weight='bold',
-                 bbox=dict(facecolor='lightgreen', edgecolor="green", alpha=0.5, boxstyle="circle, pad=.1"))
+                 bbox=dict(facecolor='lightgreen', edgecolor="green", alpha=0.5, boxstyle="circle, pad=.3"))
 
         # Display epidemic, outbreak counts and number of player cards left.
         plt.text(-1900, 4300,
@@ -142,7 +142,7 @@ class Renderer:
                          bbox=dict(facecolor="RED", edgecolor="red", alpha=0.3,
                                    boxstyle="square, pad=.1"))
 
-    def draw_decks_info(self, infection_discard_pile, player_1, player_2):
+    def draw_decks_info(self, infection_discard_pile, player_1, player_2, cities):
         """
         Draw the infection discard pile and the players' decks information.
 
@@ -156,19 +156,50 @@ class Renderer:
                  s="Infection discard pile:\n" + "\n".join(infection_discard_pile),
                  ha='center', va='top', fontsize=12, weight="bold")
         
-        # Draw Player 1's role and hand.
-        plt.text(x=-2200, y=3000,
-                 s="Player A: " + str(player_1.role) + "\n" + "\n".join(player_1.hand),
-                 ha='center', va='center', color=player_1.color, fontsize=12, weight="bold")
+       # Player A deck
+        # We'll manually build lines so we can color them properly.
+        p1_role_line = f"Player A: {player_1.role}"
+        plt.text(-2200, 3000, p1_role_line,
+                     ha='center', va='center',
+                     fontsize=12, weight="bold")
         
-        # Draw Player 2's role and hand.
-        plt.text(x=-1200, y=3000,
-                 s="Player B: " + str(player_2.role) + "\n" + "\n".join(player_2.hand),
-                 ha='center', va='center', color=player_2.color, fontsize=12, weight="bold")
+        y_offset = 2900
+        for card in player_1.hand:
+            # if you want to color by city color, do something like:
+            # card_color = COLORS.get(card, "black")
+            # but for now let's just color everything by the player's color:
+            plt.text(-2200, y_offset, card,
+                         ha='center', va='center', color=COLOR_HEX[cities[card].color],
+                         fontsize=12, weight="bold")
+            y_offset -= 50
+        
+        # Player B deck
+        p2_role_line = f"Player B: {player_2.role}"
+        plt.text(-1200, 3000, p2_role_line,
+                     ha='center', va='center',
+                     fontsize=12, weight="bold")
+        
+        y_offset = 2900
+        for card in player_2.hand:
+            # Same logic for card coloring, if desired
+            plt.text(-1200, y_offset, card,
+                         ha='center', va='center', color=COLOR_HEX[cities[card].color],
+                         fontsize=12, weight="bold")
+            y_offset -= 50
+        
+    def draw_game_info(self, game_number):
+        """
+        Draw the current game number on the map.
+
+        Parameters:
+            game_number (int): The current game number.
+        """
+        plt.text(x=2500, y=4700, s=f"Game {game_number}",
+                 ha='center', va='center', fontsize=24, weight='bold')
 
     def draw_map(self, cities, player_1, player_2, infection_rate, epidemic_count,
                  outbreak_count, player_deck, infection_discard_pile, yellow_cubes,
-                 blue_cubes, red_cubes, yellow_cure, blue_cure, red_cure):
+                 blue_cubes, red_cubes, yellow_cure, blue_cure, red_cure, game_number):
         
         # Clear the current figure and redraw the game map.
         plt.clf()
@@ -194,7 +225,7 @@ class Renderer:
         # Prepare positions for drawing the city network.
         pos = {name: city.pos for name, city in cities.items()}
         # Determine node colors based on the city's color using the COLORS mapping.
-        node_colors = [COLORS[city] for city in self.graph.nodes]
+        node_colors = [COLOR_HEX[COLORS[city]] for city in self.graph.nodes]
         
         # Draw the city network graph.
         nx.draw(self.graph, pos, node_color=node_colors, node_size=350,
@@ -206,7 +237,8 @@ class Renderer:
                                  yellow_cubes, blue_cubes, red_cubes, yellow_cure, blue_cure, red_cure)
         self.draw_player_info(player_1, player_2)
         self.draw_disease_cubes_info(cities)
-        self.draw_decks_info(infection_discard_pile, player_1, player_2)
+        self.draw_decks_info(infection_discard_pile, player_1, player_2, cities)
+        self.draw_game_info(game_number)
 
         # Set the boundaries for the map view.
         plt.xlim(-2750, 3250)
