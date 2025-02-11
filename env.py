@@ -18,6 +18,7 @@ class PandemicEnv(gym.Env):
 
         self.renderer = Renderer()
         self.graph = self.renderer.graph
+        self.win_score =[]
 
         # Track the number of actions taken in a turn
         self.actions_taken = 0
@@ -62,6 +63,8 @@ class PandemicEnv(gym.Env):
         self.player_1.partner = self.player_2
         self.current_player = self.player_1
 
+        self.players = [self.player_1, self.player_2]
+
         self.board.draw_epidemic_deck(self.cities, n_draws=2, n_cubes=3)
         self.board.draw_epidemic_deck(self.cities, n_draws=2, n_cubes=2)
         self.board.draw_epidemic_deck(self.cities, n_draws=2, n_cubes=1)
@@ -90,13 +93,16 @@ class PandemicEnv(gym.Env):
         if self.actions_taken == 4:
             self.actions_taken = 0  # Reset action counter
             self.board.draw_player_deck(self.current_player, self.cities)
-
+            
             # Switch player turns
             self.current_player = self.player_2 if self.current_player == self.player_1 else self.player_1
 
         # Check win/loss conditions
         done = self.board.check_win() or self.board.check_loss()
         reward = 1 if self.board.check_win() else -1 if self.board.check_loss() else 0
+
+        if done:
+            self.win_score.append(reward)
 
         return self.get_observation(), reward, done, {}
 
@@ -140,8 +146,11 @@ def main():
     # Initialize the greedy agent
     greedy_agent = GreedyAgent(env)
 
-    # Run the greedy agent for 5 episodes
-    greedy_agent.play(episodes=50)
+    # Run the greedy agent for 50 episodes
+    greedy_agent.play(episodes=500)
+
+    print(f"Win rate: {env.win_score.count(1)*100 / len(env.win_score)}%")
+    env.close()
 
 if __name__ == "__main__":
     main()

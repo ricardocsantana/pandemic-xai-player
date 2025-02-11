@@ -57,6 +57,14 @@ class Player:
 
         self.partner = partner
 
+    def discard_cards(self, cards, board):
+        """
+        Discard excess cards from the player's hand until they have at most 6 cards.
+        """
+        for card in cards:
+            self.hand.remove(card)
+            board.player_discard_pile.append(card)  # Add the card to the discard pile
+
     def action_mask(self, board, cities):
         """
         Create an action mask for the player indicating which actions are allowed.
