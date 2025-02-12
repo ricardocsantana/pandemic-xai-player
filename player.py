@@ -35,6 +35,7 @@ class Player:
         self.color = color
         self.shape = shape
         self.hand = init_hand
+        self.previous_loc = loc.name
 
         # Build the list of all possible actions.
         # The first list comprehension generates movement actions:

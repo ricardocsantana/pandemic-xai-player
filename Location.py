@@ -26,6 +26,10 @@ class City:
         self.pos = pos
         self.color = color
         self.connections = connections
+        self.ever_infected = False
+        self.color_encoder = 0 if self.color == "YELLOW" else 1 if self.color == "BLUE" else 2 if self.color == "RED" else -1
+        if self.color_encoder == -1:
+            raise ValueError("Invalid color for city")
 
         # Initialize infection levels for each disease color to zero.
         self.infection_red = 0

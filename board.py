@@ -107,6 +107,7 @@ class Board:
         for _ in range(n_draws):
             if epidemic_infect:
                 target_city = self.infection_deck.pop(0)
+                assert not cities[target_city].ever_infected, f"Bottom pile city {target_city} has been infected before!"
             else:
                 target_city = self.infection_deck.pop()
             self.infection_discard_pile.append(target_city)
@@ -114,26 +115,38 @@ class Board:
             # Infect the target city.
             for city in cities.values():
                 if city.name == target_city:
+                    if not city.ever_infected:
+                        city.ever_infected = True
                     # Reset outbreak tracking for this epidemic event.
                     self.outbreak_track = []
                     # Check the city's color and apply infection.
                     if city.color == "YELLOW":  # Yellow city.
-                        if city.infection_yellow == 3:
+                        if city.infection_yellow + n_cubes > 3:
+                            self.yellow_cubes -= 3 - city.infection_yellow
+                            city.infection_yellow = 3
                             self.outbreak("yellow", city, cities)
                         else:
                             city.infection_yellow += n_cubes
+                            # assert self.yellow_cubes < n_cubes, "Not enough yellow cubes!"
+                            assert city.infection_yellow <= 3, f"Hey {city.infection_yellow} {n_cubes} {epidemic_infect}"
                             self.yellow_cubes -= n_cubes
                     if city.color == "BLUE":  # Blue city.
-                        if city.infection_blue == 3:
+                        if city.infection_blue + n_cubes > 3:
+                            self.blue_cubes -= 3 - city.infection_blue
+                            city.infection_blue = 3
                             self.outbreak("blue", city, cities)
                         else:
                             city.infection_blue += n_cubes
+                            assert city.infection_blue <= 3, f"Hey {city.infection_blue} {n_cubes} {epidemic_infect}"
                             self.blue_cubes -= n_cubes
                     if city.color == "RED":  # Red city.
-                        if city.infection_red == 3:
+                        if city.infection_red + n_cubes > 3:
+                            self.red_cubes -= 3 - city.infection_red
+                            city.infection_red = 3
                             self.outbreak("red", city, cities)
                         else:
                             city.infection_red += n_cubes
+                            assert city.infection_red <= 3, f"Hey {city.infection_red} {n_cubes} {epidemic_infect}"
                             self.red_cubes -= n_cubes
                     # If any outbreak occurred, print the outbreak track.
                     #if len(self.outbreak_track) > 0:

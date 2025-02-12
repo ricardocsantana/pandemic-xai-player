@@ -32,30 +32,6 @@ class GreedyAgent:
 
         # print(treat_disease)
         return treat_disease
-    
-    def select_discard(self, player_id, player_hand):
-        """
-        Selects the best cards to discard from the player's hand.
-        """
-        
-        n_discard = len(player_hand) - 6
-        best_cards = None
-        best_value = float("inf")
-        
-        for cards in list(itertools.combinations(player_hand, n_discard)):
-            temp_env = copy.deepcopy(self.env)
-            temp_env.players[player_id-1].discard_cards(cards, temp_env.board)
-
-            evaluator = StateEvaluator(temp_env.board, temp_env.current_player,
-                        temp_env.players, temp_env.graph, temp_env.cities)
-            
-            h_value = evaluator.h_state(1, None)
-            if h_value < best_value:
-                best_value = h_value
-                best_cards = cards
-
-        return best_cards
-        
 
     def select_action(self):
         """
@@ -98,12 +74,8 @@ class GreedyAgent:
             while not done:
                 for _ in range(4):  # Take 4 actions per turn
                     action = self.select_action()
-                    obs, reward, done, _ = self.env.step(action)
-
-                    for player in self.env.players:
-                        if len(player.hand) > 6:
-                            discard = self.select_discard(player.id, player.hand)
-                            player.discard_cards(discard, self.env.board)
+                    self.env.render()
+                    obs, reward, done, _, _ = self.env.step(action)
                     
                     if done:
                         print(f"Game ended with reward: {reward}")
