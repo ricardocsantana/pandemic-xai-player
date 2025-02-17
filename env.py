@@ -5,7 +5,7 @@ from board import Board
 from location import City
 from player import Player
 from render import Renderer
-from greedy import GreedyAgent
+from dfs_top_k import GreedyAgent
 from constants import CITIES, COLORS
 import networkx as nx
 import itertools
@@ -32,8 +32,116 @@ class PandemicEnv(gym.Env):
         self.action_space = spaces.Discrete(79)
 
         # Define observation space (game state representation)
-        self.observation_space = spaces.Box(low=0, high=1, shape=(248,), dtype=np.float32)
+        self.observation_space = spaces.Box(low=0, high=1, shape=(849,), dtype=np.float32)
 
+    def set_share_location(self, current_player_hand_by_color, partner_player_hand_by_color, graph):
+        """
+        Return:
+            share_knowledge (bool) : Whether we can share cards in an advantageous location
+            share_knowledge_location (str or None) : The city name where sharing should occur
+        """
+        # Track best option for (3+1) scenario
+        best_option_1_distance = float("inf")
+        best_option_1_location = None
+        
+        # Track best option for (2 + [1..2]) scenario
+        best_option_2_distance = float("inf")
+        best_option_2_location = None
+        
+        # Giver/Receiver pairs (in both directions):
+        possible_pairs = [
+            ("current", current_player_hand_by_color, "partner", partner_player_hand_by_color),
+            ("partner", partner_player_hand_by_color, "current", current_player_hand_by_color),
+        ]
+        
+        for giver_name, giver_hand, receiver_name, receiver_hand in possible_pairs:
+            for color in ["YELLOW", "BLUE", "RED"]:
+                # Skip if cure is already discovered
+                if getattr(self.board, f"{color.lower()}_cure"):
+                    continue
+                
+                # Count how many cards of this color each player has
+                num_receiver_color = sum(1 for c in receiver_hand.values() if c == color)
+                num_giver_color = sum(1 for c in giver_hand.values() if c == color)
+
+                # Potential city cards (of this color) in the giver's hand
+                potential_locations = [
+                    city for city, card_color in giver_hand.items() if card_color == color
+                ]
+                if not potential_locations:
+                    # If giver has none of these color cards, skip
+                    continue
+
+                # We'll calculate the distance for each potential location
+                # from that city to both 'current' and 'partner' players.
+                for candidate_city in potential_locations:
+                    dist_current = nx.shortest_path_length(
+                        graph, candidate_city, self.current_player.loc.name
+                    )
+                    dist_partner = nx.shortest_path_length(
+                        graph, candidate_city, self.current_player.partner.loc.name
+                    )
+                    total_dist = dist_current + dist_partner
+
+                    # ---------------------------------------------------
+                    #  Option 1: (receiver has 3 cards, giver has >= 1)
+                    # ---------------------------------------------------
+                    if num_receiver_color == 3 and num_giver_color >= 1:
+                        if total_dist < best_option_1_distance:
+                            best_option_1_distance = total_dist
+                            best_option_1_location = candidate_city
+
+                    # ---------------------------------------------------
+                    #  Option 2: (receiver has 2, giver has 1 or 2)
+                    # ---------------------------------------------------
+                    elif num_receiver_color == 2 and num_giver_color in [1, 2]:
+                        if total_dist < best_option_2_distance:
+                            best_option_2_distance = total_dist
+                            best_option_2_location = candidate_city
+        
+        # -----------------------------------------------------------
+        # Decide which scenario to return:
+        #   - If Option 1 is available anywhere, use that.
+        #   - Otherwise, if Option 2 is available, use that.
+        #   - Otherwise, no share_knowledge is possible.
+        # -----------------------------------------------------------
+        if best_option_1_location is not None:
+            return True, best_option_1_location
+        elif best_option_2_location is not None:
+            return True, best_option_2_location
+        else:
+            return False, None
+
+
+    def choose_player_goal(self, current_player_hand, partner_player_hand, cities, graph):
+
+        treat_yellow_disease = False
+        treat_blue_disease = False
+        treat_red_disease = False
+        share_knowledge = False
+        share_knowledge_location = None
+
+        current_player_hand_by_color = {city: cities[city].color for city in current_player_hand}
+        partner_player_hand_by_color = {city: cities[city].color for city in partner_player_hand}
+
+        if not self.board.yellow_cure:
+            treat_yellow_disease = 1 if list(current_player_hand_by_color.values()).count("YELLOW") >= 4 else 0
+        if not self.board.blue_cure:
+            treat_blue_disease = 1 if list(current_player_hand_by_color.values()).count("BLUE") >= 4 else 0
+        if not self.board.red_cure:
+            treat_red_disease = 1 if list(current_player_hand_by_color.values()).count("RED") >= 4 else 0
+
+        treat_disease = treat_yellow_disease or treat_blue_disease or treat_red_disease
+
+        if treat_disease:
+            return treat_disease, share_knowledge, share_knowledge_location
+        
+        share_knowledge, share_knowledge_location = self.set_share_location(current_player_hand_by_color, partner_player_hand_by_color, graph)
+        if share_knowledge:
+            return treat_disease, share_knowledge, share_knowledge_location
+        
+        return treat_disease, share_knowledge, share_knowledge_location
+    
     def find_cure_prob(self):
         """
         Returns the probability of finding a cure based on the player's hand.
@@ -64,7 +172,6 @@ class PandemicEnv(gym.Env):
         
         return cure_prob
 
-
     def select_discard(self, player_id, player_hand):
         """
         Selects the best cards to discard from the player's hand.
@@ -81,7 +188,7 @@ class PandemicEnv(gym.Env):
             evaluator = StateEvaluator(temp_env.board, temp_env.current_player,
                         temp_env.players, temp_env.graph, temp_env.cities)
             
-            h_value = evaluator.h_state(1, None)
+            h_value = evaluator.h_discard()
             if h_value < best_value:
                 best_value = h_value
                 best_cards = cards
@@ -123,6 +230,8 @@ class PandemicEnv(gym.Env):
         self.player_1.partner = self.player_2
         self.current_player = self.player_1
 
+        self.current_player.goal = self.choose_player_goal(self.current_player.hand, self.player_2.hand, self.cities, self.graph)
+
         self.players = [self.player_1, self.player_2]
 
         self.board.draw_epidemic_deck(self.cities, n_draws=2, n_cubes=3)
@@ -133,7 +242,7 @@ class PandemicEnv(gym.Env):
         self.actions_taken = 0  # Reset action counter
         self.game_number += 1  # Increment game number
         self.prev_outbreak_count = 0
-        self.prev_cure_prob = self.find_cure_prob()
+        self.high_cure_prob = self.find_cure_prob()
         self.game_round = 0
 
         return self.get_observation(), {}
@@ -147,119 +256,107 @@ class PandemicEnv(gym.Env):
         done = False
 
         self.current_player.previous_loc = self.current_player.loc.name
-        self.prev_cure_prob = self.find_cure_prob()
+        
+        cure_prob = self.find_cure_prob()
+        if cure_prob["YELLOW"] > self.high_cure_prob["YELLOW"]:
+            self.high_cure_prob["YELLOW"] = cure_prob["YELLOW"]
+        if cure_prob["BLUE"] > self.high_cure_prob["BLUE"]:
+            self.high_cure_prob["BLUE"] = cure_prob["BLUE"]
+        if cure_prob["RED"] > self.high_cure_prob["RED"]:
+            self.high_cure_prob["RED"] = cure_prob["RED"]
 
+        self.prev_outbreak_count = self.board.outbreak_count
+        prev_loc = self.current_player.loc.name
         action = self.current_player.all_actions[action_idx]
         self.current_player.take_action(action, self.board, self.cities)
 
         token = action.split()
-        current_player_hand_by_color = [self.cities[card].color for card in self.current_player.hand]
+        # current_player_hand_by_color = [self.cities[card].color for card in self.current_player.hand]
 
         # 0: Minimize infection spread
 
         reward_dict = {}
+        reward_dict["Cure disease"] = 0
+        reward_dict["Share knowledge"] = 0
+        reward_dict["Move"] = 0
         reward = 0
 
-        #reward = - 0.05 * ((16-self.board.yellow_cubes) + (16 - self.#board.blue_cubes) + (16 - self.board.red_cubes))  # Penalize the player for not curing diseases
+        find_cure, share_knowledge, share_knowledge_location = self.current_player.goal
 
-        # reward_dict["Infection spread"] = reward
-
-        # A: Cure a disease
-        reward_dict["Cure disease"] = 0
-        
-        if (current_player_hand_by_color.count("YELLOW") >= 4 and not self.board.yellow_cure) or \
-            (current_player_hand_by_color.count("BLUE") >= 4 and not self.board.blue_cure) or \
-            (current_player_hand_by_color.count("RED") >= 4 and not self.board.red_cure):
-            advantage = nx.shortest_path_length(self.graph, self.current_player.previous_loc, "GENÈVE") - nx.shortest_path_length(self.graph, self.current_player.loc.name, "GENÈVE")
-            if advantage > 0:
-                reward += 0.2 * advantage
-                reward_dict["Cure disease"] = 0.2 * advantage
-            else:
-                reward += 0.2 * advantage
-                reward_dict["Cure disease"] = 0.2 * advantage
+        if find_cure:
+            reward += 0.1 * (nx.shortest_path_length(self.graph, prev_loc, "GENÈVE") - \
+            nx.shortest_path_length(self.graph, self.current_player.loc.name, "GENÈVE"))
+            reward_dict["Cure disease"] += 0.1 * (nx.shortest_path_length(self.graph, prev_loc, "GENÈVE") - \
+            nx.shortest_path_length(self.graph, self.current_player.loc.name, "GENÈVE"))
 
         if token[0] == "FIND":
-            reward += 10
-            reward_dict["Cure disease"] = 10
+            reward += 3
+            reward_dict["Cure disease"] += 3
 
-        # B: Find a cure
+        if share_knowledge:
+            reward += 0.1 * (nx.shortest_path_length(self.graph, prev_loc, share_knowledge_location) - \
+            nx.shortest_path_length(self.graph, self.current_player.loc.name, share_knowledge_location))
+            reward_dict["Cure disease"] += 0.1 * (nx.shortest_path_length(self.graph, prev_loc, share_knowledge_location) - \
+            nx.shortest_path_length(self.graph, self.current_player.loc.name, share_knowledge_location))
 
-        elif token[0] == "SHARE":
-            if self.find_cure_prob()[self.current_player.loc.color] > self.prev_cure_prob[self.current_player.loc.color]:
-                reward_dict["Share know"] = 0.5
-                reward += 0.5
-            else:
-                reward_dict["Share know"] = - 0.5
-                reward -= 0.5
-        elif token[0] == "DIRECT":
-            if self.find_cure_prob()[COLORS[token[-1]]] < self.prev_cure_prob[COLORS[token[-1]]]:
-                reward += - 0.5
-                reward_dict["Direct fly"] = - 0.5
-            elif not getattr(self.board, f"{COLORS[token[-1]].lower()}_cure"):
-                reward += - 0.2
-                reward_dict["Direct fly"] = - 0.2
+        if token[0] == "SHARE":
+            if self.find_cure_prob()[self.current_player.loc.color] > self.high_cure_prob[self.current_player.loc.color]:
+                reward += 1
+                reward_dict["Share knowledge"] += 1
 
-        elif token[0] == "CHARTER":
-            if self.find_cure_prob()[self.current_player.loc.color] < self.prev_cure_prob[self.current_player.loc.color]:
-                reward += - 0.5
-                reward_dict["Charter fly"] = - 0.5
-            elif not getattr(self.board, f"{self.current_player.loc.color.lower()}_cure"):
-                reward += - 0.2
-                reward_dict["Charter fly"] = - 0.2
+        if token[0] == "DIRECT" and not getattr(self.board, f"{COLORS[token[-1]].lower()}_cure"):
+            reward += -0.1
+            reward_dict["Move"] += -0.1
+
+        if token[0] == "CHARTER" and not getattr(self.board, f"{COLORS[prev_loc].lower()}_cure"):
+            reward += -0.1
+            reward_dict["Move"] += -0.1
 
         # C: Treat a disease
-        elif token[0] == "TREAT": 
+        if token[0] == "TREAT": 
             if getattr(self.current_player.loc, f"infection_{token[-1].lower()}") == 2:
                 reward += 0.3
                 reward_dict["Treat disease"] = 0.3
             elif getattr(self.current_player.loc, f"infection_{token[-1].lower()}") == 1:
-                reward += 0.2
-                reward_dict["Treat disease"] = 0.2
+                reward += 0.1
+                reward_dict["Treat disease"] = 0.1
             elif getattr(self.current_player.loc, f"infection_{token[-1].lower()}") == 0:
-                reward += 0.2
-                reward_dict["Treat disease"] = 0.2
-            else:
-                raise ValueError(f"Invalid infection level: {getattr(self.current_player.loc, f'infection_{token[-1].lower()}')}", [token, self.current_player.loc.name])
+                reward += 0.1
+                reward_dict["Treat disease"] = 0.1
         
-        # D: Prevent outbreaks
-        if self.board.outbreak_count > self.prev_outbreak_count:
-            reward += - (self.board.outbreak_count - self.prev_outbreak_count)
-            self.prev_outbreak_count = self.board.outbreak_count
-
         self.actions_taken += 1  # Increment action count
 
+        if self.board.check_win():
+                reward = 10
+                done = True
+
         # If 4 actions have been taken, switch turns and draw player cards
-        if self.actions_taken == 4:
-            self.actions_taken = 0  # Reset action counter
-            self.board.draw_player_deck(self.current_player, self.cities)
-            self.game_round += 1
+        if self.actions_taken == 4 and not done:
+            # Check win/loss conditions
+            if self.board.check_loss_player_deck():
+                reward = -10
+                done = True
+            else:
+                self.actions_taken = 0  # Reset action counter
+                self.board.draw_player_deck(self.current_player, self.cities)
+                # After drawing two cards, draw from the epidemic deck as per the current infection rate.
+                self.board.draw_epidemic_deck(self.cities, n_draws=self.board.infection_rate_track[self.board.infection_rate], 
+                                              n_cubes=1, quarantine_specialist_loc=self.player_2.loc.name)
+                self.game_round += 1
+
+            if self.board.check_loss_infection():
+                reward = -10
+                done = True
 
             # Switch player turns
             self.current_player = self.player_2 if self.current_player == self.player_1 else self.player_1
+            self.current_player.goal = self.choose_player_goal(self.current_player.hand, self.current_player.partner.hand, self.cities, self.graph)
 
-            for city in self.cities.values():
-                if city.infection_yellow > 3 \
-                    or city.infection_blue > 3 \
-                    or city.infection_red > 3:
-                    print(action)
-                    self.render()
-                    raise ValueError(f"Invalid infection level: {self.board.player_deck, city.name, city.infection_yellow, city.infection_blue, city.infection_red}")
-                    
-
-            # reward += 0.01  # Reward the player for surviving a turn
-
-        # Check win/loss conditions
-        if self.board.check_win():
-            reward = 10
-            done = True
-        elif self.board.check_loss():
-            reward = -10
-            done = True
-
-        #for player in self.players:
-            #if len(player.hand) > 6:
-                #discard = self.select_discard(player.id, player.hand)
-                #player.discard_cards(discard, self.board)
+        # Discard cards if player has more than 6
+        for player in self.players:
+            if len(player.hand) > 6:
+                discard = self.select_discard(player.id, player.hand)
+                player.discard_cards(discard, self.board)
 
         if done:
             self.win_score.append(reward)
@@ -301,17 +398,17 @@ class PandemicEnv(gym.Env):
         decoded_obs = {}
 
         for idx, city in enumerate(self.cities.values()):
-            decoded_obs[city.name] = [round(float(elem), 1) for elem in obs[idx*10:(idx+1)*10]]
+            decoded_obs[city.name] = [round(float(elem), 1) for elem in obs[idx*35:(idx+1)*35]]
 
-        decoded_obs["Game round"] = round(float(obs[240]), 1)
-        decoded_obs["Player id"] = round(float(obs[241]), 1)
-        decoded_obs["Player turn"] = round(float(obs[242]), 1)
-        decoded_obs["Outbreak count"] = round(float(obs[243]), 1)
-        decoded_obs["Infection rate"] = round(float(obs[244]), 1)
-        decoded_obs["Yellow cure"] = round(float(obs[245]), 1)
-        decoded_obs["Blue cure"] = round(float(obs[246]), 1)
-        decoded_obs["Red cure"] = round(float(obs[247]), 1)
-
+        decoded_obs["Game round"] = round(float(obs[840]), 1)
+        decoded_obs["Player id"] = round(float(obs[841]), 1)
+        decoded_obs["Player turn"] = round(float(obs[842]), 1)
+        decoded_obs["Outbreak count"] = round(float(obs[843]), 1)
+        decoded_obs["Infection rate"] = round(float(obs[844]), 1)
+        decoded_obs["Yellow cure"] = round(float(obs[845]), 1)
+        decoded_obs["Blue cure"] = round(float(obs[846]), 1)
+        decoded_obs["Red cure"] = round(float(obs[847]), 1)
+        decoded_obs["Find cure"] = round(float(obs[848]), 1)
         return decoded_obs
 
     def get_observation(self):
@@ -319,9 +416,14 @@ class PandemicEnv(gym.Env):
         Returns a vector representation of the game state.
         """
         obs = {}
+        find_cure, share_knowledge, share_knowledge_location = self.current_player.goal
 
         for city in self.cities.values():
             partial_obs = []
+            if share_knowledge and share_knowledge_location == city.name:
+                partial_obs.append(1)
+            else:
+                partial_obs.append(0)
             partial_obs.append(city.color_encoder / 2)
             partial_obs.append(city.infection_yellow / 3)
             partial_obs.append(city.infection_blue / 3)
@@ -332,6 +434,13 @@ class PandemicEnv(gym.Env):
             partial_obs.append(1 if city.name == self.player_2.loc.name else 0)
             partial_obs.append(1 if city.name in self.board.infection_discard_pile else 0)
             partial_obs.append(1 if city.name in self.board.player_discard_pile else 0)
+        
+            for other_city in self.cities.values():
+                if city.name == other_city.name:
+                    partial_obs.append(0)
+                else:
+                    partial_obs.append(nx.shortest_path_length(self.graph, city.name, other_city.name) / 8)
+            
             obs[city.name] = partial_obs
 
         obs["Game round"] = self.game_round / 10
@@ -342,6 +451,7 @@ class PandemicEnv(gym.Env):
         obs["Yellow cure"] = self.board.yellow_cure
         obs["Blue cure"] = self.board.blue_cure
         obs["Red cure"] = self.board.red_cure
+        obs["Find cure"] = (1 if find_cure else 0)
 
         obs_data = []
         for _, value in obs.items():

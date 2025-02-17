@@ -84,10 +84,7 @@ class Board:
                 self.infection_deck.extend(self.infection_discard_pile)
                 self.infection_discard_pile = []
 
-        # After drawing two cards, draw from the epidemic deck as per the current infection rate.
-        self.draw_epidemic_deck(cities, n_draws=self.infection_rate_track[self.infection_rate], n_cubes=1)
-
-    def draw_epidemic_deck(self, cities, n_draws, n_cubes, epidemic_infect=False):
+    def draw_epidemic_deck(self, cities, n_draws, n_cubes, epidemic_infect=False, quarantine_specialist_loc=None):
         """
         Draw cards from the infection deck to simulate an epidemic spread.
 
@@ -114,7 +111,13 @@ class Board:
 
             # Infect the target city.
             for city in cities.values():
-                if city.name == target_city:
+                if (city.name == target_city and epidemic_infect) or \
+                (city.name == target_city and quarantine_specialist_loc is None) or \
+                (city.name == target_city and not epidemic_infect \
+                and quarantine_specialist_loc is not None \
+                and city.name != quarantine_specialist_loc \
+                and quarantine_specialist_loc not in city.connections):
+                    
                     if not city.ever_infected:
                         city.ever_infected = True
                     # Reset outbreak tracking for this epidemic event.
@@ -215,10 +218,11 @@ class Board:
 
         # Create three piles, each with an Epidemic card inserted.
         piles = [
-            city_cards[6:12] + ["Epidemic"],
-            city_cards[12:18] + ["Epidemic"],
-            city_cards[18:] + ["Epidemic"]
+            city_cards[6:12], #+ ["Epidemic"],
+            city_cards[12:18], #+ ["Epidemic"],
+            city_cards[18:] #+ ["Epidemic"]
         ]
+
         # Shuffle each pile individually.
         for pile in piles:
             random.shuffle(pile)
@@ -236,12 +240,21 @@ class Board:
         """
         return self.yellow_cure and self.blue_cure and self.red_cure
 
-    def check_loss(self):
+    def check_loss_infection(self):
         """
         Check if the players have lost the game due to outbreaks, running out of cubes, or running out of player cards.
 
         Returns:
             bool: True if the players have lost, False otherwise.
         """
-        return self.outbreak_count >= 4 or self.yellow_cubes <= 0 \
-    or self.blue_cubes <= 0 or self.red_cubes <= 0 or len(self.player_deck) <= 1
+        return self.outbreak_count >= 4 or self.yellow_cubes < 0 \
+    or self.blue_cubes < 0 or self.red_cubes < 0
+
+    def check_loss_player_deck(self):
+        """
+        Check if the players have lost the game due to running out of player cards.
+
+        Returns:
+            bool: True if the players have lost, False otherwise.
+        """
+        return len(self.player_deck) <= 1

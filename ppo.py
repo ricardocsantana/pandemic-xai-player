@@ -21,8 +21,8 @@ env = ActionMasker(env, mask_fn)  # Wrap to enable masking
 # Define a larger network architecture:
 policy_kwargs = dict(
     net_arch={
-        "pi": [512, 512, 512],  # Three hidden layers for the policy network
-        "vf": [512, 512, 512]   # Three hidden layers for the value network
+        "pi": [1024, 1024, 1024],  # Three hidden layers for the policy network
+        "vf": [1024, 1024, 1024]   # Three hidden layers for the value network
     }
 )
 
@@ -31,8 +31,8 @@ policy_kwargs = dict(
 # retrieved and used when learning. Note that MaskablePPO does not accept
 # a new action_mask_fn kwarg, as it did in an earlier draft.
 model = MaskablePPO(MaskableActorCriticPolicy, env, verbose=1, tensorboard_log="./ppo/", policy_kwargs=policy_kwargs)
-model.learn(150_000)
-model.save("ppo_pandemic-{}".format(datetime.now().strftime("%Y%m%d-%H%M%S")))
+model.learn(100_000, progress_bar=True)
+model.save("./ppo/models/ppo_pandemic-{}".format(datetime.now().strftime("%Y%m%d-%H%M%S")))
 
 # Note that use of masks is manual and optional outside of learning,
 # so masking can be "removed" at testing time
@@ -54,4 +54,3 @@ for _ in range(100):
         print(info)
         print(reward)
         print("--------------------")
-    

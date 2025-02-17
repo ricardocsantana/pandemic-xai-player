@@ -50,6 +50,18 @@ class StateEvaluator:
         for player in self.players:
             h_dcure += nx.shortest_path_length(self.graph, "GENÈVE", player.loc.name)
         return h_dcure
+    
+    def h_dshare(self, target_city):
+        """
+        Heuristic for sharing knowledge.
+        Determines the distance from the current player to the target city.
+        Lower values indicate the player is closer to the target city.
+        """
+        h_dshare = 0
+        for player in self.players:
+            h_dshare += nx.shortest_path_length(self.graph, player.loc.name, target_city)
+        return h_dshare
+        
 
     def h_cards(self):
         """
@@ -98,11 +110,18 @@ class StateEvaluator:
         """
         h_inf = 0
         for city in self.cities.keys():
-            h_inf += (
-                self.cities[city].infection_red +
-                self.cities[city].infection_blue +
-                self.cities[city].infection_yellow
-            )
+            if self.cities[city].infection_red == 3 or \
+                self.cities[city].infection_blue == 3 or \
+                self.cities[city].infection_yellow == 3:
+
+                h_inf += 1.5
+
+            elif self.cities[city].infection_red or \
+                self.cities[city].infection_blue or \
+                self.cities[city].infection_yellow:
+
+                h_inf += 0.5
+                
         return h_inf
 
     def h_cure(self):
@@ -121,16 +140,34 @@ class StateEvaluator:
             h_cure += 1
 
         return h_cure
+    
+    def h_discard(self):
+        return self.h_cards() + 0.5 * self.h_disc()
 
-    def h_state(self, goal, action):
+    def h_state(self, goal):
         """
         Combines all heuristics into a single state evaluation metric using fixed weights.
         The formula is:
           0.5 * h_dsurv + 0.5 * h_dcure + h_cards + 0.5 * h_disc + 0.6 * h_inf + 24 * h_cure
         A lower score typically indicates a more favorable game state.
         """
-        h_dsurv = (1 - goal) * self.h_dsurv()
-        h_dcure = goal * self.h_dcure()
+        treat_disease, share_knowledge, share_knowledge_location = goal
+        
+        if treat_disease:
+            h_dcure = self.h_dcure()
+            h_dsurv = 0
+            h_dshare = 0
+
+        elif share_knowledge:
+            h_dsurv = 0
+            h_dcure = 0
+            h_dshare = self.h_dshare(share_knowledge_location)
+
+        else:
+            h_dsurv = self.h_dsurv()
+            h_dcure = 0
+            h_dshare = 0
+
         h_cards = self.h_cards()
         h_disc = self.h_disc()
         h_inf = self.h_inf()
@@ -142,4 +179,4 @@ class StateEvaluator:
                "h_cure": round(h_cure, 2)})
         '''
 
-        return 0.5 * h_dsurv + 0.5 * h_dcure + h_cards + 0.5 * h_disc + 0.6 * h_inf + 24 * h_cure
+        return 0.5 * h_dsurv + 0.5 * h_dcure + 0.5 * h_dshare + h_cards + 1.5 * h_disc + 0.6 * h_inf + 24 * h_cure

@@ -36,6 +36,8 @@ class Player:
         self.shape = shape
         self.hand = init_hand
         self.previous_loc = loc.name
+        self.goal = None
+        self.actions = []
 
         # Build the list of all possible actions.
         # The first list comprehension generates movement actions:
@@ -43,7 +45,7 @@ class Player:
         # - "DIRECT FLIGHT to <city>" for each city card in hand.
         # - "CHARTER FLIGHT to <city>" for each city (if the player's hand contains the current city).
         self.all_actions = [
-            f"{action} to {city}"
+            f"{action} TO {city}"
             for action in ["DRIVE", "DIRECT FLIGHT", "CHARTER FLIGHT"]
             for city in CITIES.keys()
         ] + [
@@ -83,14 +85,16 @@ class Player:
         allowed_actions = []
 
         # DRIVE: Allowed to move to any directly connected city.
-        allowed_actions.extend([f"DRIVE to {city}" for city in self.loc.connections])
+        allowed_actions.extend([f"DRIVE TO {city}" for city in self.loc.connections])
 
         # DIRECT FLIGHT: Allowed to fly to any city for which the player holds the corresponding card.
-        allowed_actions.extend([f"DIRECT FLIGHT to {city}" for city in self.hand])
+        allowed_actions.extend([f"DIRECT FLIGHT TO {city}" for city in self.hand if not city == self.loc.name
+                                and city not in self.loc.connections])
 
         # CHARTER FLIGHT: If the player holds the card of their current city, they may fly anywhere.
         if self.loc.name in self.hand:
-            allowed_actions.extend([f"CHARTER FLIGHT to {city}" for city in CITIES.keys()])
+            allowed_actions.extend([f"CHARTER FLIGHT TO {city}" for city in CITIES.keys() if not city == self.loc.name
+                                    and city not in self.loc.connections])
 
         # TREAT: Allowed if the current city has infection cubes.
         if self.loc.infection_yellow > 0:
@@ -102,6 +106,8 @@ class Player:
 
         # SHARE KNOWLEDGE: Allowed if both players are in the same city and one of them holds the card for that city.
         if self.loc.name == self.partner.loc.name:
+            if self.loc != self.partner.loc:
+                raise ValueError("Players are not in the same city.")
             if self.loc.name in self.hand:
                 allowed_actions.append("SHARE KNOWLEDGE")
             if self.loc.name in self.partner.hand:
@@ -122,6 +128,7 @@ class Player:
         # Build the action mask: mark each action in all_actions as allowed (1) or not allowed (0).
         action_mask = [1 if action in allowed_actions else 0 for action in self.all_actions]
 
+        # print(allowed_actions)
         return action_mask, allowed_actions
     
     def random_action(self, action_mask):
@@ -175,6 +182,18 @@ class Player:
             target_city_name = tokens[-1]
             self.loc = cities[target_city_name]
             board.player_discard_pile.append(self.loc.name)  # Add the card to the discard pile
+
+        if action_type == "DRIVE" or action_type=="DIRECT" or action_type=="CHARTER":
+            if self.role == "CONTAINMENT":
+                if self.loc.infection_yellow >= 2:
+                    self.loc.infection_yellow -= 1
+                    board.yellow_cubes += 1
+                elif self.loc.infection_blue >= 2:
+                    self.loc.infection_blue -= 1
+                    board.blue_cubes += 1
+                elif self.loc.infection_red >= 2:
+                    self.loc.infection_red -= 1
+                    board.red_cubes += 1
 
         elif action_type == "TREAT":
             # For a TREAT action, remove infection cubes from the current city.
